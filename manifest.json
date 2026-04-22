@@ -1,0 +1,18 @@
+{
+  "name": "KidsTV",
+  "short_name": "KidsTV",
+  "description": "Safe, curated YouTube videos for kids — no ads, no rabbit holes",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "background_color": "#0f0e17",
+  "theme_color": "#0f0e17",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
