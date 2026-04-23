@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="KidsTV">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <title>KidsTV</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
+
+    :root {
+      --bg: #0f0e17;
+      --bg2: #1a1929;
+      --card: #1f1e30;
+      --card2: #27263a;
+      --text: #fffffe;
+      --muted: #8b8fa8;
+      --accent: #e8b84b;
+      --radius: 18px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── SCREENS ── */
+    .screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .screen.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* ── REUSABLE ── */
+    .screen-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      flex-shrink: 0;
+    }
+    .screen-title { font-size: 20px; font-weight: 700; }
+
+    .btn-icon {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--card2);
+      border: none;
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      font-size: 18px;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .btn-icon:active { background: #3a3860; }
+
+    .spinner {
+      width: 44px; height: 44px;
+      border: 4px solid rgba(255,255,255,0.1);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-center {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 16px; color: var(--muted); font-size: 15px;
+    }
+
+    /* ══════════════════════════════════════════
+       SCREEN 1 — PROFILE SELECTION
+    ══════════════════════════════════════════ */
+    #screen-profiles {
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+    }
+
+    .profiles-logo { font-size: 44px; margin-bottom: 4px; }
+    .profiles-headline {
+      font-size: clamp(26px, 5vw, 44px);
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .profiles-sub {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 44px;
+      text-align: center;
+    }
+
+    .profiles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 18px;
+      width: 100%;
+      max-width: 680px;
+    }
+
+    .profile-card {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 12px;
+      padding: 26px 12px;
+      background: var(--card);
+      border-radius: var(--radius);
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .profile-card:active { transform: scale(0.93); }
+    .profile-card:hover { border-color: rgba(255,255,255,0.15); }
+
+    .profile-avatar {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 30px; font-weight: 800;
+      color: white;
+    }
+    .profile-card-name { font-size: 16px; font-weight: 700; text-align: center; }
+    .profile-card-subs { font-size: 12px; color: var(--muted); }
+
+    .parent-btn {
+      margin-top: 36px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 13px 28px;
+      background: transparent;
+      border: 2px solid rgba(255,255,255,0.12);
+      border-radius: 100px;
+      color: var(--muted);
+      font-size: 15px; font-weight: 600;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .parent-btn:hover { border-color: var(--muted); color: var(--text); }
+
+    /* ══════════════════════════════════════════
+       SCREEN 2 — KID HOME
+    ══════════════════════════════════════════ */
+    #screen-kid-home { background: var(--bg); }
+
+    .kid-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 22px 20px 0;
+      flex-shrink: 0;
+    }
+    .kid-greeting { font-size: 20px; font-weight: 800; }
+    .kid-greeting em { color: var(--accent); font-style: normal; }
+
+    .kid-home-body {
+      flex: 1;
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+      padding: 20px;
+      gap: 16px;
+    }
+
+    .section-label {
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+    @media (min-width: 560px) { .cat-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 800px) { .cat-grid { grid-template-columns: repeat(4, 1fr); } }
+
+    .cat-card {
+      aspect-ratio: 1;
+      border-radius: 20px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .cat-card:active { transform: scale(0.91); }
+    .cat-card-emoji { font-size: clamp(36px, 8vw, 52px); line-height: 1; }
+    .cat-card-name {
+      font-size: clamp(13px, 2.8vw, 16px);
+      font-weight: 800;
+      text-align: center;
+      color: white;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+      padding: 0 8px;
+    }
+
+    .empty-subscriptions {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 14px; text-align: center; padding: 40px;
+    }
+    .empty-subscriptions .big { font-size: 68px; }
+    .empty-subscriptions h2 { font-size: 22px; font-weight: 800; }
+    .empty-subscriptions p { color: var(--muted); font-size: 15px; line-height: 1.5; }
+
+    .explore-strip { padding: 0 0 16px; }
+    .explore-btn {
+      width: 100%;
+      padding: 15px;
+      background: var(--card);
+      border: 2px dashed rgba(255,255,255,0.12);
+      border-radius: var(--radius);
+      color: var(--muted);
+      font-size: 15px; font-weight: 600;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .explore-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ══════════════════════════════════════════
+       SCREEN 3 — EXPLORE / SUBSCRIBE
+    ══════════════════════════════════════════ */
+    #screen-explore { background: var(--bg); }
+
+    .explore-list {
+      display: flex; flex-direction: column;
+      gap: 10px;
+      padding: 16px;
+    }
+
+    .explore-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px;
+      background: var(--card);
+      border-radius: var(--radius);
+    }
+
+    .explore-icon {
+      width: 54px; height: 54px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+
+    .explore-info { flex: 1; min-width: 0; }
+    .explore-name { font-size: 15px; font-weight: 700; }
+    .explore-channels { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+    .sub-btn {
+      padding: 9px 16px;
+      border-radius: 100px;
+      border: 2px solid;
+      font-size: 13px; font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .sub-btn.on { background: var(--accent); border-color: var(--accent); color: #0f0e17; }
+    .sub-btn.off { background: transparent; border-color: rgba(255,255,255,0.2); color: var(--muted); }
+
+    /* ══════════════════════════════════════════
+       SCREEN 4 — VIDEO GRID
+    ══════════════════════════════════════════ */
+    #screen-category { background: var(--bg); }
+
+    .cat-header-banner {
+      display: flex; align-items: center; gap: 14px;
+      padding: 20px;
+      flex-shrink: 0;
+    }
+    .cat-header-icon {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+    }
+    .cat-header-name { font-size: 20px; font-weight: 800; }
+    .cat-header-count { font-size: 13px; color: var(--muted); }
+
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      padding: 0 16px 24px;
+    }
+    @media (min-width: 560px) { .video-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 800px) { .video-grid { grid-template-columns: repeat(4, 1fr); } }
+
+    .video-card {
+      border-radius: 14px;
+      overflow: hidden;
+      background: var(--card);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .video-card:active { transform: scale(0.94); }
+
+    .video-thumb-wrap {
+      position: relative;
+      width: 100%; aspect-ratio: 16/9;
+      background: var(--bg2);
+    }
+    .video-thumb {
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
+    }
+    .play-overlay {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.25);
+      opacity: 0; transition: opacity 0.15s;
+    }
+    .video-card:hover .play-overlay { opacity: 1; }
+    .play-overlay-icon {
+      width: 44px; height: 44px;
+      background: rgba(0,0,0,0.7);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+
+    .video-info { padding: 10px 10px 12px; }
+    .video-title {
+      font-size: 13px; font-weight: 600;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .video-channel {
+      font-size: 11px; color: var(--muted); margin-top: 4px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .error-state {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 12px; padding: 40px; text-align: center;
+    }
+    .error-state .err-icon { font-size: 52px; }
+    .error-state h3 { font-size: 18px; font-weight: 700; }
+    .error-state p { color: var(--muted); font-size: 14px; line-height: 1.5; }
+
+    /* ══════════════════════════════════════════
+       SCREEN 5 — VIDEO PLAYER
+    ══════════════════════════════════════════ */
+    #screen-player {
+      background: black;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    #player-wrap {
+      position: absolute; inset: 0;
+    }
+    #player-wrap iframe {
+      width: 100%; height: 100%;
+      border: none; display: block;
+    }
+
+    .player-overlay {
+      position: absolute; top: 0; left: 0; right: 0;
+      padding: 16px 16px 40px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, transparent 100%);
+      display: flex; align-items: center; gap: 12px;
+      z-index: 20;
+      pointer-events: none;
+    }
+    .player-overlay button { pointer-events: all; }
+
+    .player-back {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 18px;
+      background: rgba(0,0,0,0.65);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 100px;
+      color: white;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer; flex-shrink: 0;
+    }
+    .player-title-text {
+      flex: 1;
+      font-size: 14px; font-weight: 600;
+      color: rgba(255,255,255,0.9);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .player-next {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 18px;
+      background: rgba(0,0,0,0.65);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 100px;
+      color: white;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer; flex-shrink: 0;
+    }
+
+    /* ══════════════════════════════════════════
+       SCREEN 6 — ADMIN PIN
+    ══════════════════════════════════════════ */
+    #screen-admin-pin {
+      align-items: center; justify-content: center;
+      background: var(--bg); padding: 24px;
+    }
+
+    .pin-card {
+      background: var(--card);
+      border-radius: 24px;
+      padding: 36px 28px 28px;
+      width: 100%; max-width: 340px;
+      text-align: center;
+    }
+    .pin-lock { font-size: 40px; margin-bottom: 12px; }
+    .pin-card-title { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+    .pin-card-sub { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+
+    .pin-dots {
+      display: flex; gap: 14px;
+      justify-content: center; margin-bottom: 28px;
+    }
+    .pin-dot {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      transition: background 0.15s, transform 0.15s;
+    }
+    .pin-dot.filled { background: var(--accent); transform: scale(1.15); }
+
+    .pin-keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .pin-key {
+      padding: 16px;
+      background: var(--bg2); border: none; border-radius: 14px;
+      color: var(--text);
+      font-size: 20px; font-weight: 600;
+      cursor: pointer;
+      transition: background 0.12s, transform 0.1s;
+    }
+    .pin-key:active { background: #3a3860; transform: scale(0.93); }
+    .pin-key.del { font-size: 16px; color: var(--muted); }
+
+    .pin-error { color: #ff5c5c; font-size: 13px; margin-top: 14px; min-height: 18px; }
+    .pin-cancel {
+      margin-top: 16px;
+      background: none; border: none;
+      color: var(--muted); font-size: 14px;
+      cursor: pointer; padding: 8px;
+    }
+
+    /* ══════════════════════════════════════════
+       SCREEN 7 — ADMIN DASHBOARD
+    ══════════════════════════════════════════ */
+    #screen-admin { background: var(--bg); }
+
+    .admin-header {
+      display: flex; align-items: center; gap: 14px;
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      flex-shrink: 0;
+    }
+    .admin-badge {
+      background: var(--accent); color: #0f0e17;
+      font-size: 11px; font-weight: 800;
+      padding: 3px 9px; border-radius: 100px;
+      letter-spacing: 0.5px;
+    }
+
+    .admin-tabs {
+      display: flex;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      flex-shrink: 0;
+    }
+    .tab-btn {
+      flex: 1; padding: 13px 8px;
+      background: none; border: none;
+      color: var(--muted);
+      font-size: 14px; font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .tab-pane { display: none; padding: 20px; overflow-y: auto; flex: 1; }
+    .tab-pane.active { display: block; }
+
+    /* Admin — Profiles */
+    .admin-profiles-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+
+    .admin-profile-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px;
+      background: var(--card); border-radius: var(--radius);
+    }
+    .admin-profile-info { flex: 1; }
+    .admin-profile-name { font-size: 15px; font-weight: 700; }
+    .admin-profile-detail { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+    .btn-delete {
+      padding: 8px 14px; background: none;
+      border: 1px solid rgba(255,80,80,0.4);
+      border-radius: 100px;
+      color: #ff6b6b;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer;
+    }
+
+    .add-profile-card { background: var(--card); border-radius: var(--radius); padding: 20px; }
+    .add-profile-title {
+      font-size: 14px; font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+
+    .form-label { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; display: block; }
+    .form-input {
+      width: 100%; padding: 11px 14px;
+      background: var(--bg2);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; color: var(--text);
+      font-size: 16px; margin-bottom: 14px;
+      -webkit-appearance: none;
+    }
+    .form-input:focus { outline: none; border-color: var(--accent); }
+
+    .color-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .color-swatch {
+      width: 34px; height: 34px; border-radius: 50%;
+      cursor: pointer; border: 3px solid transparent;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .color-swatch.sel { border-color: white; transform: scale(1.15); }
+
+    .btn-primary {
+      padding: 12px 24px; background: var(--accent);
+      border: none; border-radius: 12px;
+      color: #0f0e17; font-size: 15px; font-weight: 800;
+      cursor: pointer;
+    }
+    .btn-primary:active { opacity: 0.8; }
+
+    /* Admin — History */
+    .history-controls { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .history-stat { font-size: 14px; color: var(--muted); }
+    .btn-clear {
+      padding: 8px 16px; background: none;
+      border: 1px solid rgba(255,80,80,0.4);
+      border-radius: 100px; color: #ff6b6b;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+
+    .history-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .history-row {
+      display: flex; gap: 12px; align-items: center;
+      padding: 11px 12px;
+      background: var(--card); border-radius: 14px;
+    }
+    .history-thumb {
+      width: 72px; height: 40px; border-radius: 7px;
+      object-fit: cover; background: var(--bg2); flex-shrink: 0;
+    }
+    .history-info { flex: 1; min-width: 0; }
+    .history-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .history-meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    .empty-history { text-align: center; padding: 48px 20px; color: var(--muted); }
+    .empty-history .bm { font-size: 48px; margin-bottom: 12px; }
+
+    /* Admin — Settings */
+    .settings-group { margin-bottom: 24px; }
+    .settings-group-title {
+      font-size: 12px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1.2px;
+      color: var(--muted); margin-bottom: 10px;
+    }
+    .settings-card { background: var(--card); border-radius: var(--radius); overflow: hidden; }
+    .settings-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row-label { flex: 1; font-size: 14px; }
+    .settings-input {
+      padding: 8px 12px; background: var(--bg2);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; color: var(--text);
+      font-size: 13px; text-align: right; width: 180px;
+    }
+    .settings-input:focus { outline: none; border-color: var(--accent); }
+
+    .channel-edit-row {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .channel-edit-row:last-child { border-bottom: none; }
+    .channel-edit-label { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .channel-id-input {
+      width: 100%; padding: 8px 12px;
+      background: var(--bg2);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; color: var(--text);
+      font-size: 11px;
+      font-family: 'SF Mono', 'Courier New', monospace;
+    }
+    .channel-id-input:focus { outline: none; border-color: var(--accent); }
+
+    .settings-save-btn {
+      margin-top: 8px; padding: 11px 22px;
+      background: var(--accent); border: none; border-radius: 10px;
+      color: #0f0e17; font-size: 14px; font-weight: 800;
+      cursor: pointer;
+    }
+
+    .cat-section-header {
+      font-size: 13px; font-weight: 700; color: var(--accent);
+      padding: 12px 0 6px;
+      text-transform: uppercase; letter-spacing: 0.8px;
+    }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(6px); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ SCREEN 1: PROFILE SELECTION ══ -->
+<div id="screen-profiles" class="screen active">
+  <div class="profiles-logo">📺</div>
+  <div class="profiles-headline">KidsTV</div>
+  <div class="profiles-sub">Who's watching?</div>
+  <div class="profiles-grid" id="profiles-grid"></div>
+  <button class="parent-btn" onclick="goAdminPin()">🔒 Parent Area</button>
+</div>
+
+<!-- ══ SCREEN 2: KID HOME ══ -->
+<div id="screen-kid-home" class="screen">
+  <div class="kid-header">
+    <div class="kid-greeting">Hey, <em id="kid-name-display">Buddy</em>! 👋</div>
+    <button class="btn-icon" onclick="showScreen('screen-profiles')" title="Switch profile">⬅</button>
+  </div>
+  <div class="kid-home-body" id="kid-home-body"></div>
+</div>
+
+<!-- ══ SCREEN 3: EXPLORE / SUBSCRIBE ══ -->
+<div id="screen-explore" class="screen">
+  <div class="screen-header">
+    <button class="btn-icon" onclick="goBack('screen-kid-home')">⬅</button>
+    <div class="screen-title">Explore Channels</div>
+  </div>
+  <div class="explore-list" id="explore-list"></div>
+</div>
+
+<!-- ══ SCREEN 4: CATEGORY VIDEOS ══ -->
+<div id="screen-category" class="screen">
+  <div class="cat-header-banner">
+    <button class="btn-icon" onclick="goBack('screen-kid-home')">⬅</button>
+    <div class="cat-header-icon" id="cat-header-icon"></div>
+    <div>
+      <div class="cat-header-name" id="cat-header-name"></div>
+      <div class="cat-header-count" id="cat-header-count"></div>
+    </div>
+  </div>
+  <div id="video-grid-container"></div>
+</div>
+
+<!-- ══ SCREEN 5: VIDEO PLAYER ══ -->
+<div id="screen-player" class="screen">
+  <div id="player-wrap"></div>
+  <div class="player-overlay">
+    <button class="player-back" onclick="closePlayer()">⬅ Stop</button>
+    <span class="player-title-text" id="player-title-text"></span>
+    <button class="player-next" onclick="nextVideo()">Next ▶▶</button>
+  </div>
+</div>
+
+<!-- ══ SCREEN 6: ADMIN PIN ══ -->
+<div id="screen-admin-pin" class="screen">
+  <div class="pin-card">
+    <div class="pin-lock">🔒</div>
+    <div class="pin-card-title">Parent Area</div>
+    <div class="pin-card-sub">Enter your PIN to continue</div>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="dot-0"></div>
+      <div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div>
+      <div class="pin-dot" id="dot-3"></div>
+    </div>
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pinTap('1')">1</button>
+      <button class="pin-key" onclick="pinTap('2')">2</button>
+      <button class="pin-key" onclick="pinTap('3')">3</button>
+      <button class="pin-key" onclick="pinTap('4')">4</button>
+      <button class="pin-key" onclick="pinTap('5')">5</button>
+      <button class="pin-key" onclick="pinTap('6')">6</button>
+      <button class="pin-key" onclick="pinTap('7')">7</button>
+      <button class="pin-key" onclick="pinTap('8')">8</button>
+      <button class="pin-key" onclick="pinTap('9')">9</button>
+      <button class="pin-key" style="visibility:hidden"></button>
+      <button class="pin-key" onclick="pinTap('0')">0</button>
+      <button class="pin-key del" onclick="pinDel()">⌫</button>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+    <button class="pin-cancel" onclick="showScreen('screen-profiles')">Cancel</button>
+  </div>
+</div>
+
+<!-- ══ SCREEN 7: ADMIN DASHBOARD ══ -->
+<div id="screen-admin" class="screen">
+  <div class="admin-header">
+    <button class="btn-icon" onclick="showScreen('screen-profiles')">⬅</button>
+    <div class="screen-title">Parent Area</div>
+    <span class="admin-badge">ADMIN</span>
+  </div>
+
+  <div class="admin-tabs">
+    <button class="tab-btn active" onclick="switchTab('profiles')">Profiles</button>
+    <button class="tab-btn" onclick="switchTab('history')">History</button>
+    <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
+  </div>
+
+  <div id="tab-profiles" class="tab-pane active">
+    <div class="admin-profiles-list" id="admin-profiles-list"></div>
+    <div class="add-profile-card">
+      <div class="add-profile-title">+ Add a Kid</div>
+      <label class="form-label">Name</label>
+      <input class="form-input" id="new-profile-name" placeholder="e.g. Liam" maxlength="20" />
+      <label class="form-label">Pick a color</label>
+      <div class="color-row" id="color-row"></div>
+      <button class="btn-primary" onclick="addProfile()">Add Profile</button>
+    </div>
+  </div>
+
+  <div id="tab-history" class="tab-pane">
+    <div id="history-content"></div>
+  </div>
+
+  <div id="tab-settings" class="tab-pane">
+    <div class="settings-group">
+      <div class="settings-group-title">App Settings</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div class="settings-row-label">Admin PIN</div>
+          <input class="settings-input" id="settings-pin" type="password" maxlength="6" placeholder="••••" />
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-label">YouTube API Key</div>
+          <input class="settings-input" id="settings-apikey" type="password" placeholder="AIzaSy…" />
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <button class="settings-save-btn" onclick="saveAppSettings()">Save Settings</button>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-title">Channel IDs</div>
+      <div id="channel-settings-list"></div>
+      <div style="margin-top:10px;">
+        <button class="settings-save-btn" onclick="saveChannelSettings()">Save Channel IDs</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG & CHANNEL DATA
+// Channel IDs can be updated in Admin → Settings if one
+// needs correcting. Find a channel ID by going to any
+// channel page and looking at the URL, or use
+// https://commentpicker.com/youtube-channel-id.php
+// ═══════════════════════════════════════════════════════
+
+const DEFAULT_CONFIG = {
+  apiKey: 'AIzaSyClAoT7E66zSOCoFlAMy-E2ueJUD7Os58g',
+  adminPin: '1234',
+};
+
+// NOTE: Change your admin PIN in Parent Area → Settings after first login!
+const DEFAULT_CATEGORIES = [
+  {
+    id: 'faith',
+    name: 'Faith & Scriptures',
+    emoji: '🙏',
+    color: '#7c6fcd',
+    channels: [
+      { name: 'Thumb Follow Me (Come Follow Me)',   id: 'UCnCfMlmBr4LoJ2Qx0FAwCpA' },
+      { name: 'Latter Day Kids',                    id: 'UCqcV3DaWnvf2j-Dl1w7nNyA' },
+      { name: 'The Church of Jesus Christ (Official)', id: 'UCdNjexbIS_NKJC4ZRwKf9ag' },
+    ]
+  },
+  {
+    id: 'animals',
+    name: 'Animals & Nature',
+    emoji: '🐾',
+    color: '#4caf50',
+    channels: [
+      { name: 'Wild Kratts',  id: 'UCxEmDFo1yUbbxjEb9RjitVA' },
+      { name: 'Nat Geo Kids', id: 'UCXVCgDuD_QCkI7gTKU7-tpg' },
+    ]
+  },
+  {
+    id: 'science',
+    name: 'Science & Experiments',
+    emoji: '🔬',
+    color: '#2196f3',
+    channels: [
+      { name: 'Mark Rober',           id: 'UCY1kMZp36IQSyNx_9h4mpCg' },
+      { name: 'SciShow Kids',         id: 'UCZVojhlANR-8-WXjIOmVWoA' },
+      { name: "Emily's Wonder Lab (Netflix Jr)", id: 'UCqB7PazvnLkDEpAt3oYBwHw' },
+    ]
+  },
+  {
+    id: 'space',
+    name: 'Space & Exploration',
+    emoji: '🚀',
+    color: '#1565c0',
+    channels: [
+      { name: 'NASA Kids Club', id: 'UCRqKlt4G1EvNg_rhfNUxwRw' },
+    ]
+  },
+  {
+    id: 'art',
+    name: 'Art & Creativity',
+    emoji: '🎨',
+    color: '#ff9800',
+    channels: [
+      { name: 'Art Hub for Kids', id: 'UC5XMF3Inoi8R9nSI8ChOsdQ' },
+    ]
+  },
+  {
+    id: 'learning',
+    name: 'Songs & Learning',
+    emoji: '🎵',
+    color: '#e91e63',
+    channels: [
+      { name: 'Songs for Littles (Miss Rachel)', id: 'UCG2CL6EUjG8TVT1Tpl9nJdg' },
+      { name: 'Numberblocks',                    id: 'UCPlwvN0w4qFSP1FllALB92w' },
+    ]
+  },
+];
+
+const AVATAR_COLORS = [
+  '#e8b84b','#7c6fcd','#4caf50','#e91e63',
+  '#2196f3','#ff9800','#00bcd4','#9c27b0'
+];
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+
+let state = {
+  currentProfile: null,
+  currentCategoryId: null,
+  currentVideos: [],
+  currentVideoIndex: 0,
+  pinEntry: '',
+  activeTab: 'profiles',
+  selectedColor: AVATAR_COLORS[0],
+  videoCache: {},
+  CACHE_TTL: 60 * 60 * 1000, // 1 hour
+};
+
+// ═══════════════════════════════════════════════════════
+// STORAGE HELPERS
+// ═══════════════════════════════════════════════════════
+
+function getProfiles() {
+  try { return JSON.parse(localStorage.getItem('ktv_profiles')) || []; }
+  catch { return []; }
+}
+function saveProfiles(p) { localStorage.setItem('ktv_profiles', JSON.stringify(p)); }
+
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem('ktv_history')) || []; }
+  catch { return []; }
+}
+function saveHistory(h) { localStorage.setItem('ktv_history', JSON.stringify(h)); }
+
+function getConfig() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('ktv_config')) || {};
+    return Object.assign({}, DEFAULT_CONFIG, stored);
+  } catch { return { ...DEFAULT_CONFIG }; }
+}
+function saveConfig(c) { localStorage.setItem('ktv_config', JSON.stringify(c)); }
+
+function getCategories() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('ktv_categories'));
+    if (!stored) return DEFAULT_CATEGORIES;
+    // Merge stored channel IDs into default structure
+    return DEFAULT_CATEGORIES.map(defCat => {
+      const storedCat = stored.find(s => s.id === defCat.id);
+      if (!storedCat) return defCat;
+      return {
+        ...defCat,
+        channels: defCat.channels.map((ch, i) => ({
+          ...ch,
+          id: (storedCat.channels[i] && storedCat.channels[i].id) || ch.id
+        }))
+      };
+    });
+  } catch { return DEFAULT_CATEGORIES; }
+}
+function saveCategories(cats) { localStorage.setItem('ktv_categories', JSON.stringify(cats)); }
+
+function addToHistory(profileName, video) {
+  const h = getHistory();
+  h.unshift({
+    profileName,
+    videoId: video.videoId,
+    videoTitle: video.title,
+    channelName: video.channelName,
+    thumb: video.thumb,
+    watchedAt: Date.now(),
+  });
+  saveHistory(h.slice(0, 200));
+}
+
+// ═══════════════════════════════════════════════════════
+// SCREEN NAVIGATION
+// ═══════════════════════════════════════════════════════
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+
+function goBack(dest) {
+  showScreen(dest);
+  if (dest === 'screen-kid-home') renderKidHome();
+}
+
+// ═══════════════════════════════════════════════════════
+// SCREEN 1: PROFILE SELECTION
+// ═══════════════════════════════════════════════════════
+
+function renderProfiles() {
+  const grid = document.getElementById('profiles-grid');
+  const profiles = getProfiles();
+  grid.innerHTML = '';
+
+  if (profiles.length === 0) {
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--muted);">
+        <div style="font-size:48px;margin-bottom:12px;">👶</div>
+        <div style="font-size:16px;font-weight:600;">No profiles yet</div>
+        <div style="font-size:13px;margin-top:6px;">Tap <strong>Parent Area</strong> below to add your kids</div>
+      </div>`;
+    return;
+  }
+
+  profiles.forEach(p => {
+    const subs = (p.subscriptions || []).length;
+    const card = document.createElement('div');
+    card.className = 'profile-card';
+    card.innerHTML = `
+      <div class="profile-avatar" style="background:${p.color}">${esc(p.name[0].toUpperCase())}</div>
+      <div class="profile-card-name">${esc(p.name)}</div>
+      <div class="profile-card-subs">${subs} channel${subs !== 1 ? 's' : ''}</div>
+    `;
+    card.addEventListener('click', () => selectProfile(p));
+    grid.appendChild(card);
+  });
+}
+
+function selectProfile(profile) {
+  // Re-fetch fresh from storage
+  const profiles = getProfiles();
+  const fresh = profiles.find(p => p.id === profile.id) || profile;
+  state.currentProfile = fresh;
+  document.getElementById('kid-name-display').textContent = fresh.name;
+  renderKidHome();
+  showScreen('screen-kid-home');
+}
+
+// ═══════════════════════════════════════════════════════
+// SCREEN 2: KID HOME
+// ═══════════════════════════════════════════════════════
+
+function renderKidHome() {
+  const profiles = getProfiles();
+  const fresh = profiles.find(p => p.id === (state.currentProfile && state.currentProfile.id));
+  if (fresh) state.currentProfile = fresh;
+  const profile = state.currentProfile;
+  if (!profile) return;
+
+  const subs = profile.subscriptions || [];
+  const categories = getCategories();
+  const body = document.getElementById('kid-home-body');
+  body.innerHTML = '';
+
+  const subscribedCats = categories.filter(c => subs.includes(c.id));
+
+  if (subscribedCats.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-subscriptions';
+    empty.innerHTML = `
+      <div class="big">🌟</div>
+      <h2>Nothing here yet!</h2>
+      <p>Tap <strong>Explore &amp; Subscribe</strong> below<br>to pick what you want to watch.</p>
+    `;
+    body.appendChild(empty);
+  } else {
+    const label = document.createElement('div');
+    label.className = 'section-label';
+    label.textContent = 'What do you want to watch?';
+    body.appendChild(label);
+
+    const grid = document.createElement('div');
+    grid.className = 'cat-grid';
+
+    subscribedCats.forEach(cat => {
+      const card = document.createElement('div');
+      card.className = 'cat-card';
+      card.style.background = `linear-gradient(135deg, ${hexA(cat.color,0.93)}, ${hexA(cat.color,0.55)})`;
+      card.innerHTML = `
+        <div class="cat-card-emoji">${cat.emoji}</div>
+        <div class="cat-card-name">${esc(cat.name)}</div>
+      `;
+      card.addEventListener('click', () => openCategory(cat));
+      grid.appendChild(card);
+    });
+
+    body.appendChild(grid);
+  }
+
+  const strip = document.createElement('div');
+  strip.className = 'explore-strip';
+  strip.innerHTML = `<button class="explore-btn" onclick="openExplore()">✨ Explore &amp; Subscribe to Channels</button>`;
+  body.appendChild(strip);
+}
+
+// ═══════════════════════════════════════════════════════
+// SCREEN 3: EXPLORE / SUBSCRIBE
+// ═══════════════════════════════════════════════════════
+
+function openExplore() {
+  renderExplore();
+  showScreen('screen-explore');
+}
+
+function renderExplore() {
+  const profile = state.currentProfile;
+  const subs = (profile && profile.subscriptions) ? profile.subscriptions : [];
+  const categories = getCategories();
+  const list = document.getElementById('explore-list');
+  list.innerHTML = '';
+
+  categories.forEach(cat => {
+    const isOn = subs.includes(cat.id);
+    const channelNames = cat.channels.map(c => c.name).join(', ');
+    const row = document.createElement('div');
+    row.className = 'explore-row';
+    row.innerHTML = `
+      <div class="explore-icon" style="background:${hexA(cat.color,0.2)}">${cat.emoji}</div>
+      <div class="explore-info">
+        <div class="explore-name">${esc(cat.name)}</div>
+        <div class="explore-channels">${esc(channelNames)}</div>
+      </div>
+      <button class="sub-btn ${isOn ? 'on' : 'off'}" data-catid="${cat.id}">
+        ${isOn ? '✓ Subscribed' : '+ Subscribe'}
+      </button>
+    `;
+    row.querySelector('.sub-btn').addEventListener('click', () => toggleSubscription(cat.id));
+    list.appendChild(row);
+  });
+}
+
+function toggleSubscription(catId) {
+  if (!state.currentProfile) return;
+  const profiles = getProfiles();
+  const idx = profiles.findIndex(p => p.id === state.currentProfile.id);
+  if (idx === -1) return;
+  const subs = profiles[idx].subscriptions || [];
+  const pos = subs.indexOf(catId);
+  if (pos === -1) subs.push(catId);
+  else subs.splice(pos, 1);
+  profiles[idx].subscriptions = subs;
+  saveProfiles(profiles);
+  state.currentProfile = profiles[idx];
+  renderExplore();
+}
+
+// ═══════════════════════════════════════════════════════
+// SCREEN 4: CATEGORY VIDEOS
+// ═══════════════════════════════════════════════════════
+
+async function openCategory(cat) {
+  state.currentCategoryId = cat.id;
+
+  const icon = document.getElementById('cat-header-icon');
+  icon.textContent = cat.emoji;
+  icon.style.background = hexA(cat.color, 0.2);
+  document.getElementById('cat-header-name').textContent = cat.name;
+  document.getElementById('cat-header-count').textContent = '';
+
+  const container = document.getElementById('video-grid-container');
+  container.innerHTML = `<div class="loading-center"><div class="spinner"></div><div>Loading videos…</div></div>`;
+
+  showScreen('screen-category');
+
+  // Check cache
+  const cached = state.videoCache[cat.id];
+  if (cached && (Date.now() - cached.ts < state.CACHE_TTL)) {
+    renderVideoGrid(cached.videos, cat);
+    return;
+  }
+
+  const config = getConfig();
+  const allVideos = [];
+
+  try {
+    const fetches = cat.channels.map(ch => fetchChannelVideos(ch, config.apiKey));
+    const results = await Promise.allSettled(fetches);
+    results.forEach(r => {
+      if (r.status === 'fulfilled') allVideos.push(...r.value);
+    });
+
+    if (allVideos.length === 0) {
+      container.innerHTML = `
+        <div class="error-state">
+          <div class="err-icon">😔</div>
+          <h3>No videos found</h3>
+          <p>This might be an API quota issue or a channel ID needs updating.<br>Ask a parent to check Settings.</p>
+        </div>`;
+      return;
+    }
+
+    const shuffled = shuffleArray(allVideos);
+    state.videoCache[cat.id] = { videos: shuffled, ts: Date.now() };
+    renderVideoGrid(shuffled, cat);
+  } catch (err) {
+    container.innerHTML = `
+      <div class="error-state">
+        <div class="err-icon">⚠️</div>
+        <h3>Couldn't load videos</h3>
+        <p>${esc(String(err.message || 'Unknown error'))}<br><br>Ask a parent to check the API key in Settings.</p>
+      </div>`;
+  }
+}
+
+async function fetchChannelVideos(channel, apiKey) {
+  const url = 'https://www.googleapis.com/youtube/v3/search'
+    + '?part=snippet'
+    + '&channelId=' + encodeURIComponent(channel.id)
+    + '&maxResults=15'
+    + '&order=date'
+    + '&type=video'
+    + '&safeSearch=strict'
+    + '&videoEmbeddable=true'
+    + '&key=' + encodeURIComponent(apiKey);
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('YouTube API error ' + res.status);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+
+  return (data.items || [])
+    .map(item => ({
+      videoId: item.id.videoId,
+      title: item.snippet.title,
+      channelName: item.snippet.channelTitle,
+      thumb: ((item.snippet.thumbnails || {}).medium || (item.snippet.thumbnails || {}).default || {}).url || '',
+      publishedAt: item.snippet.publishedAt,
+    }))
+    .filter(v => v.videoId);
+}
+
+function renderVideoGrid(videos, cat) {
+  const container = document.getElementById('video-grid-container');
+  document.getElementById('cat-header-count').textContent = videos.length + ' videos';
+
+  const grid = document.createElement('div');
+  grid.className = 'video-grid';
+
+  videos.forEach((v, i) => {
+    const card = document.createElement('div');
+    card.className = 'video-card';
+    card.innerHTML = `
+      <div class="video-thumb-wrap">
+        ${v.thumb ? `<img class="video-thumb" src="${esc(v.thumb)}" alt="" loading="lazy">` : ''}
+        <div class="play-overlay"><div class="play-overlay-icon">▶</div></div>
+      </div>
+      <div class="video-info">
+        <div class="video-title">${esc(v.title)}</div>
+        <div class="video-channel">${esc(v.channelName)}</div>
+      </div>
+    `;
+    card.addEventListener('click', () => playVideo(videos, i));
+    grid.appendChild(card);
+  });
+
+  container.innerHTML = '';
+  container.appendChild(grid);
+}
+
+// ═══════════════════════════════════════════════════════
+// SCREEN 5: VIDEO PLAYER
+// ═══════════════════════════════════════════════════════
+
+function playVideo(videos, index) {
+  state.currentVideos = videos;
+  state.currentVideoIndex = index;
+  const video = videos[index];
+
+  document.getElementById('player-title-text').textContent = video.title;
+
+  const wrap = document.getElementById('player-wrap');
+  wrap.innerHTML = `<iframe
+    src="https://www.youtube.com/embed/${encodeURIComponent(video.videoId)}?autoplay=1&rel=0&modestbranding=1&playsinline=1"
+    allow="autoplay; fullscreen; picture-in-picture"
+    allowfullscreen
+  ></iframe>`;
+
+  showScreen('screen-player');
+
+  if (state.currentProfile) {
+    addToHistory(state.currentProfile.name, video);
+  }
+}
+
+function nextVideo() {
+  const next = (state.currentVideoIndex + 1) % state.currentVideos.length;
+  playVideo(state.currentVideos, next);
+}
+
+function closePlayer() {
+  document.getElementById('player-wrap').innerHTML = '';
+  showScreen('screen-category');
+}
+
+// ═══════════════════════════════════════════════════════
+// SCREEN 6: ADMIN PIN
+// ═══════════════════════════════════════════════════════
+
+function goAdminPin() {
+  state.pinEntry = '';
+  updatePinDots();
+  document.getElementById('pin-error').textContent = '';
+  showScreen('screen-admin-pin');
+}
+
+function pinTap(digit) {
+  if (state.pinEntry.length >= 4) return;
+  state.pinEntry += digit;
+  updatePinDots();
+  if (state.pinEntry.length === 4) setTimeout(checkPin, 150);
+}
+
+function pinDel() {
+  state.pinEntry = state.pinEntry.slice(0, -1);
+  updatePinDots();
+  document.getElementById('pin-error').textContent = '';
+}
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById('dot-' + i).classList.toggle('filled', i < state.pinEntry.length);
+  }
+}
+
+function checkPin() {
+  const config = getConfig();
+  if (state.pinEntry === config.adminPin) {
+    state.pinEntry = '';
+    updatePinDots();
+    openAdmin();
+  } else {
+    document.getElementById('pin-error').textContent = 'Wrong PIN — try again';
+    state.pinEntry = '';
+    updatePinDots();
+    const dots = document.getElementById('pin-dots');
+    dots.style.animation = 'none';
+    void dots.offsetHeight;
+    dots.style.animation = 'shake 0.3s ease';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// SCREEN 7: ADMIN DASHBOARD
+// ═══════════════════════════════════════════════════════
+
+function openAdmin() {
+  switchTab('profiles');
+  showScreen('screen-admin');
+}
+
+function switchTab(name) {
+  state.activeTab = name;
+  const tabs = ['profiles', 'history', 'settings'];
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', tabs[i] === name);
+  });
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+
+  if (name === 'profiles') renderAdminProfiles();
+  else if (name === 'history') renderAdminHistory();
+  else if (name === 'settings') renderAdminSettings();
+}
+
+// ── Admin: Profiles ──
+
+function renderAdminProfiles() {
+  const profiles = getProfiles();
+  const list = document.getElementById('admin-profiles-list');
+  list.innerHTML = '';
+
+  if (profiles.length === 0) {
+    list.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:4px 0 8px;">No profiles yet — add one below!</div>`;
+  } else {
+    const categories = getCategories();
+    profiles.forEach(p => {
+      const subs = p.subscriptions || [];
+      const subEmojis = subs.map(id => {
+        const c = categories.find(c => c.id === id);
+        return c ? c.emoji : '';
+      }).join(' ');
+      const row = document.createElement('div');
+      row.className = 'admin-profile-row';
+      row.innerHTML = `
+        <div style="width:44px;height:44px;border-radius:50%;background:${p.color};display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:white;flex-shrink:0;">
+          ${esc(p.name[0].toUpperCase())}
+        </div>
+        <div class="admin-profile-info">
+          <div class="admin-profile-name">${esc(p.name)}</div>
+          <div class="admin-profile-detail">${subs.length} subscription${subs.length !== 1 ? 's' : ''} ${subEmojis}</div>
+        </div>
+        <button class="btn-delete" data-pid="${p.id}">Delete</button>
+      `;
+      row.querySelector('.btn-delete').addEventListener('click', () => deleteProfile(p.id));
+      list.appendChild(row);
+    });
+  }
+
+  // Color picker
+  const colorRow = document.getElementById('color-row');
+  colorRow.innerHTML = '';
+  AVATAR_COLORS.forEach(color => {
+    const swatch = document.createElement('div');
+    swatch.className = 'color-swatch' + (color === state.selectedColor ? ' sel' : '');
+    swatch.style.background = color;
+    swatch.addEventListener('click', () => {
+      state.selectedColor = color;
+      document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('sel'));
+      swatch.classList.add('sel');
+    });
+    colorRow.appendChild(swatch);
+  });
+}
+
+function addProfile() {
+  const nameEl = document.getElementById('new-profile-name');
+  const name = nameEl.value.trim();
+  if (!name) { nameEl.focus(); return; }
+  const profiles = getProfiles();
+  profiles.push({
+    id: Date.now().toString(),
+    name,
+    color: state.selectedColor,
+    subscriptions: [],
+  });
+  saveProfiles(profiles);
+  nameEl.value = '';
+  renderAdminProfiles();
+  renderProfiles();
+}
+
+function deleteProfile(id) {
+  if (!confirm('Delete this profile? This cannot be undone.')) return;
+  saveProfiles(getProfiles().filter(p => p.id !== id));
+  renderAdminProfiles();
+  renderProfiles();
+}
+
+// ── Admin: History ──
+
+function renderAdminHistory() {
+  const history = getHistory();
+  const container = document.getElementById('history-content');
+  container.innerHTML = '';
+
+  if (history.length === 0) {
+    container.innerHTML = `
+      <div class="empty-history">
+        <div class="bm">📺</div>
+        <p>No watch history yet.<br>Videos your kids watch will appear here.</p>
+      </div>`;
+    return;
+  }
+
+  const controls = document.createElement('div');
+  controls.className = 'history-controls';
+  controls.innerHTML = `
+    <div class="history-stat">${history.length} video${history.length !== 1 ? 's' : ''} watched</div>
+    <button class="btn-clear" id="clear-history-btn">Clear All</button>
+  `;
+  container.appendChild(controls);
+  controls.querySelector('#clear-history-btn').addEventListener('click', clearHistory);
+
+  const list = document.createElement('div');
+  list.className = 'history-list';
+
+  history.forEach(item => {
+    const date = new Date(item.watchedAt);
+    const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const timeStr = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    const row = document.createElement('div');
+    row.className = 'history-row';
+    row.innerHTML = `
+      ${item.thumb
+        ? `<img class="history-thumb" src="${esc(item.thumb)}" alt="" loading="lazy">`
+        : `<div class="history-thumb"></div>`}
+      <div class="history-info">
+        <div class="history-title">${esc(item.videoTitle || 'Unknown title')}</div>
+        <div class="history-meta">${esc(item.profileName)} · ${esc(item.channelName || '')} · ${dateStr} at ${timeStr}</div>
+      </div>
+    `;
+    list.appendChild(row);
+  });
+
+  container.appendChild(list);
+}
+
+function clearHistory() {
+  if (!confirm('Clear all watch history?')) return;
+  saveHistory([]);
+  renderAdminHistory();
+}
+
+// ── Admin: Settings ──
+
+function renderAdminSettings() {
+  const config = getConfig();
+  const pinEl = document.getElementById('settings-pin');
+  const apiEl = document.getElementById('settings-apikey');
+  pinEl.value = '';
+  pinEl.placeholder = '(leave blank to keep current)';
+  apiEl.value = '';
+  apiEl.placeholder = '(leave blank to keep current)';
+
+  const categories = getCategories();
+  const settingsList = document.getElementById('channel-settings-list');
+  settingsList.innerHTML = '';
+
+  categories.forEach(cat => {
+    const header = document.createElement('div');
+    header.className = 'cat-section-header';
+    header.textContent = cat.emoji + ' ' + cat.name;
+    settingsList.appendChild(header);
+
+    const card = document.createElement('div');
+    card.className = 'settings-card';
+    card.style.marginBottom = '10px';
+
+    cat.channels.forEach((ch, i) => {
+      const row = document.createElement('div');
+      row.className = 'channel-edit-row';
+      row.innerHTML = `
+        <div class="channel-edit-label">${esc(ch.name)}</div>
+        <input class="channel-id-input"
+          data-catid="${esc(cat.id)}"
+          data-chindex="${i}"
+          value="${esc(ch.id)}"
+          placeholder="YouTube Channel ID"
+        />
+      `;
+      card.appendChild(row);
+    });
+
+    settingsList.appendChild(card);
+  });
+}
+
+function saveAppSettings() {
+  const config = getConfig();
+  const pin = document.getElementById('settings-pin').value.trim();
+  const api = document.getElementById('settings-apikey').value.trim();
+  if (pin) config.adminPin = pin;
+  if (api) config.apiKey = api;
+  saveConfig(config);
+  state.videoCache = {};
+  alert('✅ Settings saved!');
+  renderAdminSettings();
+}
+
+function saveChannelSettings() {
+  const categories = getCategories();
+  document.querySelectorAll('.channel-id-input').forEach(input => {
+    const catId = input.dataset.catid;
+    const chIdx = parseInt(input.dataset.chindex);
+    const cat = categories.find(c => c.id === catId);
+    if (cat && cat.channels[chIdx]) {
+      cat.channels[chIdx].id = input.value.trim();
+    }
+  });
+  saveCategories(categories);
+  state.videoCache = {};
+  alert('✅ Channel IDs saved! Cache cleared.');
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════
+
+function esc(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Converts a 6-digit hex color to rgba() — avoids 8-digit hex which breaks in some browsers
+function hexA(hex, alpha) {
+  try {
+    const r = parseInt(hex.slice(1,3), 16);
+    const g = parseInt(hex.slice(3,5), 16);
+    const b = parseInt(hex.slice(5,7), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  } catch(e) {
+    return 'rgba(100,100,200,' + alpha + ')';
+  }
+}
+
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ═══════════════════════════════════════════════════════
+// SERVICE WORKER
+// ═══════════════════════════════════════════════════════
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+
+renderProfiles();
+showScreen('screen-profiles');
+</script>
+</body>
+</html>
