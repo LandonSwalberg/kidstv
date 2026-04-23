@@ -11,501 +11,281 @@
   <title>KidsTV</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
-
     :root {
-      --bg: #0f0e17;
-      --bg2: #1a1929;
-      --card: #1f1e30;
-      --card2: #27263a;
-      --text: #fffffe;
-      --muted: #8b8fa8;
-      --accent: #e8b84b;
-      --radius: 18px;
+      --bg: #0f0e17; --bg2: #1a1929; --card: #1f1e30; --card2: #27263a;
+      --text: #fffffe; --muted: #8b8fa8; --accent: #e8b84b; --radius: 18px;
     }
-
     body {
-      background: var(--bg);
-      color: var(--text);
+      background: var(--bg); color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      height: 100vh;
-      overflow: hidden;
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-tap-highlight-color: transparent;
+      height: 100vh; overflow: hidden;
+      user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
     }
-
     .screen {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s ease;
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
     }
     .screen.active { opacity: 1; pointer-events: all; }
-
-    .scroll-body {
-      flex: 1;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
+    .screen-header {
+      display: flex; align-items: center; gap: 14px; padding: 20px 20px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
     }
-
+    .screen-title { font-size: 20px; font-weight: 700; }
     .btn-icon {
-      width: 40px; height: 40px; border-radius: 50%;
-      background: var(--card2); border: none;
-      color: var(--text); cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px; flex-shrink: 0;
+      width: 40px; height: 40px; border-radius: 50%; background: var(--card2);
+      border: none; color: var(--text); display: flex; align-items: center;
+      justify-content: center; cursor: pointer; font-size: 18px; flex-shrink: 0;
       transition: background 0.15s;
     }
     .btn-icon:active { background: #3a3860; }
-
-    .screen-header {
-      display: flex; align-items: center; gap: 14px;
-      padding: 20px 20px 16px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      flex-shrink: 0;
-    }
-    .screen-title { font-size: 20px; font-weight: 700; }
-
     .spinner {
-      width: 44px; height: 44px;
-      border: 4px solid rgba(255,255,255,0.1);
-      border-top-color: var(--accent);
-      border-radius: 50%;
+      width: 44px; height: 44px; border: 4px solid rgba(255,255,255,0.1);
+      border-top-color: var(--accent); border-radius: 50%;
       animation: spin 0.75s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes shake {
-      0%,100% { transform: translateX(0); }
-      20% { transform: translateX(-8px); }
-      40% { transform: translateX(8px); }
-      60% { transform: translateX(-6px); }
-      80% { transform: translateX(6px); }
+    .loading-center {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px; color: var(--muted); font-size: 15px;
     }
-
-    /* ═══════════════════════════════════
-       SCREEN 1 — PROFILE SELECTION
-    ═══════════════════════════════════ */
-    #screen-profiles {
-      background: var(--bg);
-      align-items: center;
-      justify-content: center;
-      padding: 40px 24px;
-    }
-    .profiles-logo { font-size: 44px; margin-bottom: 4px; }
-    .profiles-headline { font-size: clamp(26px,5vw,44px); font-weight: 800; color: var(--accent); margin-bottom: 10px; text-align: center; }
-    .profiles-sub { font-size: 15px; color: var(--muted); margin-bottom: 44px; text-align: center; }
-    .profiles-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 18px; width: 100%; max-width: 680px;
-    }
-    .profile-card {
-      display: flex; flex-direction: column; align-items: center; gap: 12px;
-      padding: 26px 12px; background: var(--card);
-      border-radius: var(--radius); cursor: pointer;
-      border: 2px solid transparent;
-      transition: transform 0.15s, border-color 0.15s;
-    }
-    .profile-card:active { transform: scale(0.93); }
-    .profile-card:hover { border-color: rgba(255,255,255,0.15); }
-    .profile-avatar {
-      width: 72px; height: 72px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 30px; font-weight: 800; color: white;
-    }
-    .profile-card-name { font-size: 16px; font-weight: 700; text-align: center; }
-    .profile-card-subs { font-size: 12px; color: var(--muted); }
-    .parent-btn {
-      margin-top: 36px;
-      display: flex; align-items: center; gap: 10px;
-      padding: 13px 28px; background: transparent;
-      border: 2px solid rgba(255,255,255,0.12); border-radius: 100px;
-      color: var(--muted); font-size: 15px; font-weight: 600;
-      cursor: pointer; transition: border-color 0.15s, color 0.15s;
-    }
-    .parent-btn:hover { border-color: var(--muted); color: var(--text); }
-
-    /* ═══════════════════════════════════
-       SCREEN 2 — KID HOME
-    ═══════════════════════════════════ */
+    .error-state { padding: 48px 24px; text-align: center; }
+    .err-icon { font-size: 48px; margin-bottom: 12px; }
+    .error-state h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .error-state p { color: var(--muted); font-size: 14px; line-height: 1.5; }
     #screen-kid-home { background: var(--bg); }
     .kid-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 22px 20px 0; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 28px 20px 8px; flex-shrink: 0; position: relative;
     }
-    .kid-greeting { font-size: 22px; font-weight: 800; cursor: default; user-select: none; }
-    .kid-greeting em { color: var(--accent); font-style: normal; }
-    .kid-home-scroll { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .kid-title {
+      font-size: 26px; font-weight: 900; color: var(--accent);
+      letter-spacing: -0.5px; cursor: default;
+      -webkit-user-select: none; user-select: none;
+    }
+    .kid-home-body {
+      flex: 1; display: flex; flex-direction: column;
+      overflow-y: auto; padding: 16px 20px 32px; gap: 14px;
+    }
     .section-label {
       font-size: 12px; font-weight: 700; letter-spacing: 1.2px;
       text-transform: uppercase; color: var(--muted);
     }
-    .cat-grid {
-      display: grid; grid-template-columns: repeat(2,1fr); gap: 14px;
-    }
-    @media (min-width: 560px) { .cat-grid { grid-template-columns: repeat(3,1fr); } }
-    @media (min-width: 800px) { .cat-grid { grid-template-columns: repeat(4,1fr); } }
+    .cat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    @media (min-width: 560px) { .cat-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 800px) { .cat-grid { grid-template-columns: repeat(4, 1fr); } }
     .cat-card {
-      aspect-ratio: 1; border-radius: 20px;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 10px;
-      cursor: pointer; transition: transform 0.15s;
+      aspect-ratio: 1; border-radius: 20px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: transform 0.15s;
     }
     .cat-card:active { transform: scale(0.91); }
-    .cat-card-emoji { font-size: clamp(36px,8vw,52px); line-height: 1; }
+    .cat-card-emoji { font-size: clamp(36px, 8vw, 52px); line-height: 1; }
     .cat-card-name {
-      font-size: clamp(13px,2.8vw,16px); font-weight: 800;
-      text-align: center; color: white;
-      text-shadow: 0 1px 6px rgba(0,0,0,0.6); padding: 0 8px;
+      font-size: clamp(13px, 2.8vw, 16px); font-weight: 800; text-align: center;
+      color: white; text-shadow: 0 1px 6px rgba(0,0,0,0.6); padding: 0 8px;
     }
-    .empty-subs {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 14px; text-align: center; padding: 40px;
+    .cat-header-banner { display: flex; align-items: center; gap: 14px; padding: 20px; flex-shrink: 0; }
+    .cat-header-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;
     }
-    .empty-subs .big { font-size: 68px; }
-    .empty-subs h2 { font-size: 22px; font-weight: 800; }
-    .empty-subs p { color: var(--muted); font-size: 15px; line-height: 1.5; }
-    .explore-btn {
-      width: 100%; padding: 15px; background: var(--card);
-      border: 2px dashed rgba(255,255,255,0.12); border-radius: var(--radius);
-      color: var(--muted); font-size: 15px; font-weight: 600;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      transition: border-color 0.15s, color 0.15s;
+    .cat-header-name { font-size: 20px; font-weight: 800; }
+    .cat-header-count { font-size: 13px; color: var(--muted); margin-top: 1px; }
+    .video-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; padding: 0 16px 32px; }
+    @media (min-width: 560px) { .video-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 800px) { .video-grid { grid-template-columns: repeat(4, 1fr); } }
+    .video-card {
+      background: var(--card); border-radius: 16px; overflow: hidden;
+      cursor: pointer; transition: transform 0.15s;
     }
-    .explore-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-    /* ═══════════════════════════════════
-       SCREEN 3 — EXPLORE / SUBSCRIBE
-    ═══════════════════════════════════ */
-    #screen-explore { background: var(--bg); }
-    .explore-list { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
-    .explore-row {
-      display: flex; align-items: center; gap: 14px;
-      padding: 14px; background: var(--card); border-radius: var(--radius);
+    .video-card:active { transform: scale(0.93); }
+    .video-thumb-wrap { position: relative; aspect-ratio: 16/9; background: var(--bg2); overflow: hidden; }
+    .video-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .play-overlay {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.18); opacity: 0; transition: opacity 0.15s;
     }
-    .explore-icon {
-      width: 54px; height: 54px; border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 26px; flex-shrink: 0;
+    .video-card:hover .play-overlay { opacity: 1; }
+    .play-overlay-icon {
+      width: 44px; height: 44px; background: rgba(0,0,0,0.7); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; padding-left: 3px;
     }
-    .explore-info { flex: 1; min-width: 0; }
-    .explore-name { font-size: 15px; font-weight: 700; }
-    .explore-channels { font-size: 12px; color: var(--muted); margin-top: 3px; }
-    .sub-btn {
-      padding: 9px 16px; border-radius: 100px; border: 2px solid;
-      font-size: 13px; font-weight: 700; cursor: pointer;
-      transition: all 0.2s; flex-shrink: 0; white-space: nowrap;
+    .video-info { padding: 10px 12px 12px; }
+    .video-title {
+      font-size: 13px; font-weight: 600; line-height: 1.35;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
-    .sub-btn.on { background: var(--accent); border-color: var(--accent); color: #0f0e17; }
-    .sub-btn.off { background: transparent; border-color: rgba(255,255,255,0.2); color: var(--muted); }
-
-    /* ═══════════════════════════════════
-       SCREEN 4 — VIDEO PLAYER
-    ═══════════════════════════════════ */
-    #screen-player { background: black; overflow: hidden; }
-
-    #player-wrap {
-      position: absolute; inset: 0;
+    .video-channel { font-size: 11px; color: var(--muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #screen-player { overflow: hidden !important; touch-action: none; }
+    #player-wrap { position: absolute; inset: 0; }
+    #player-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
+    .player-overlay {
+      position: absolute; top: 0; left: 0; right: 0; padding: 16px 16px 40px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, transparent 100%);
+      display: flex; align-items: center; gap: 12px; z-index: 20; pointer-events: none;
     }
-    #player-wrap iframe {
-      width: 100%; height: 100%; border: none; display: block;
+    .player-overlay button { pointer-events: all; }
+    .player-back {
+      display: flex; align-items: center; gap: 8px; padding: 10px 18px;
+      background: rgba(0,0,0,0.65); border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 100px; color: white; font-size: 14px; font-weight: 700; cursor: pointer; flex-shrink: 0;
     }
-
-    #player-loading {
-      position: absolute; inset: 0;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 16px;
-      background: black; color: var(--muted); font-size: 15px;
-      z-index: 5;
-    }
-    #player-loading.hidden { display: none; }
-
-    #player-tap {
-      position: absolute; inset: 0;
-      z-index: 10;
-      background: transparent;
-    }
-
-    #player-top {
-      position: absolute; top: 0; left: 0; right: 0;
-      padding: env(safe-area-inset-top, 0) 16px 48px;
-      padding-top: max(16px, env(safe-area-inset-top, 16px));
-      background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent);
-      display: flex; align-items: center; gap: 12px;
-      z-index: 20;
-      transition: opacity 0.3s;
-    }
-    #player-top.hidden { opacity: 0; pointer-events: none; }
-
-    .player-stop-btn {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 18px;
-      background: rgba(0,0,0,0.6);
-      border: 1px solid rgba(255,255,255,0.2); border-radius: 100px;
-      color: white; font-size: 14px; font-weight: 700;
-      cursor: pointer; flex-shrink: 0; z-index: 21;
-    }
-    #player-video-title {
-      flex: 1; font-size: 13px; color: rgba(255,255,255,0.85);
+    .player-title-text {
+      flex: 1; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.9);
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-
-    #player-bottom {
-      position: absolute; bottom: 0; left: 0; right: 0;
-      padding: 48px 20px max(20px, env(safe-area-inset-bottom, 20px));
-      background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
-      display: flex; flex-direction: column; align-items: center; gap: 16px;
-      z-index: 20;
-      transition: opacity 0.3s;
+    .player-next {
+      display: flex; align-items: center; gap: 8px; padding: 10px 18px;
+      background: rgba(0,0,0,0.65); border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 100px; color: white; font-size: 14px; font-weight: 700; cursor: pointer; flex-shrink: 0;
     }
-    #player-bottom.hidden { opacity: 0; pointer-events: none; }
-
-    #player-dots {
-      display: flex; gap: 7px; align-items: center;
-      max-width: 100%; overflow-x: auto;
-      padding: 4px 0;
-      scrollbar-width: none;
-    }
-    #player-dots::-webkit-scrollbar { display: none; }
-    .player-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: rgba(255,255,255,0.3);
-      flex-shrink: 0; cursor: pointer;
-      transition: all 0.2s;
-    }
-    .player-dot.active {
-      width: 22px; height: 8px; border-radius: 4px;
-      background: var(--accent);
-    }
-    .player-dot.watched {
-      background: rgba(255,255,255,0.55);
-    }
-
-    .player-nav-row {
-      display: flex; align-items: center; gap: 20px;
-    }
-    .player-nav-btn {
-      display: flex; align-items: center; gap: 8px;
-      padding: 12px 28px;
-      background: rgba(255,255,255,0.12);
-      border: 1px solid rgba(255,255,255,0.2); border-radius: 100px;
-      color: white; font-size: 16px; font-weight: 700;
-      cursor: pointer; transition: background 0.15s;
-      z-index: 21;
-    }
-    .player-nav-btn:active { background: rgba(255,255,255,0.28); }
-    .player-counter {
-      font-size: 13px; color: rgba(255,255,255,0.6);
-      min-width: 54px; text-align: center;
-    }
-
-    /* ═══════════════════════════════════
-       SCREEN 5 — ADMIN PIN
-    ═══════════════════════════════════ */
-    #screen-admin-pin {
-      align-items: center; justify-content: center;
-      background: var(--bg); padding: 24px;
-    }
+    #screen-admin-pin { align-items: center; justify-content: center; background: var(--bg); padding: 24px; }
     .pin-card {
-      background: var(--card); border-radius: 24px;
-      padding: 36px 28px 28px; width: 100%; max-width: 340px; text-align: center;
+      background: var(--card); border-radius: 24px; padding: 36px 28px 28px;
+      width: 100%; max-width: 340px; text-align: center;
     }
     .pin-lock { font-size: 40px; margin-bottom: 12px; }
     .pin-card-title { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
     .pin-card-sub { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
     .pin-dots { display: flex; gap: 14px; justify-content: center; margin-bottom: 28px; }
     .pin-dot {
-      width: 14px; height: 14px; border-radius: 50%;
-      background: rgba(255,255,255,0.15);
+      width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,0.15);
       transition: background 0.15s, transform 0.15s;
     }
     .pin-dot.filled { background: var(--accent); transform: scale(1.15); }
-    .pin-keypad { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+    .pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     .pin-key {
       padding: 16px; background: var(--bg2); border: none; border-radius: 14px;
-      color: var(--text); font-size: 20px; font-weight: 600;
-      cursor: pointer; transition: background 0.12s, transform 0.1s;
+      color: var(--text); font-size: 20px; font-weight: 600; cursor: pointer;
+      transition: background 0.12s, transform 0.1s;
     }
     .pin-key:active { background: #3a3860; transform: scale(0.93); }
     .pin-key.del { font-size: 16px; color: var(--muted); }
     .pin-error { color: #ff5c5c; font-size: 13px; margin-top: 14px; min-height: 18px; }
     .pin-cancel { margin-top: 16px; background: none; border: none; color: var(--muted); font-size: 14px; cursor: pointer; padding: 8px; }
-
-    /* ═══════════════════════════════════
-       SCREEN 6 — ADMIN DASHBOARD
-    ═══════════════════════════════════ */
     #screen-admin { background: var(--bg); }
     .admin-header {
-      display: flex; align-items: center; gap: 14px;
-      padding: 20px 20px 16px;
+      display: flex; align-items: center; gap: 14px; padding: 20px 20px 16px;
       border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
     }
     .admin-badge {
-      background: var(--accent); color: #0f0e17;
-      font-size: 11px; font-weight: 800;
-      padding: 3px 9px; border-radius: 100px;
+      font-size: 10px; font-weight: 800; background: var(--accent); color: #0f0e17;
+      padding: 3px 8px; border-radius: 100px; letter-spacing: 1px;
     }
-    .admin-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; }
+    .admin-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0; }
     .tab-btn {
-      flex: 1; padding: 13px 8px; background: none; border: none;
-      color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer;
-      border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s;
+      flex: 1; padding: 14px; background: none; border: none; color: var(--muted);
+      font-size: 14px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
     }
     .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
     .tab-pane { display: none; padding: 20px; }
     .tab-pane.active { display: block; }
-
-    .form-label { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; display: block; }
-    .form-input {
-      width: 100%; padding: 11px 14px; background: var(--bg2);
-      border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
-      color: var(--text); font-size: 16px; margin-bottom: 14px;
-      -webkit-appearance: none;
+    .cat-toggle-row {
+      display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+      background: var(--card); border-radius: 14px; margin-bottom: 10px;
     }
-    .form-input:focus { outline: none; border-color: var(--accent); }
-    .btn-primary {
-      padding: 12px 24px; background: var(--accent);
-      border: none; border-radius: 12px;
-      color: #0f0e17; font-size: 15px; font-weight: 800; cursor: pointer;
+    .cat-toggle-icon { font-size: 28px; flex-shrink: 0; }
+    .cat-toggle-info { flex: 1; }
+    .cat-toggle-name { font-size: 15px; font-weight: 700; }
+    .cat-toggle-channels { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .toggle-btn {
+      padding: 8px 18px; border-radius: 100px; border: none;
+      font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.15s; flex-shrink: 0;
     }
-    .btn-primary:active { opacity: 0.8; }
-    .btn-danger {
-      padding: 8px 14px; background: none;
-      border: 1px solid rgba(255,80,80,0.4); border-radius: 100px;
-      color: #ff6b6b; font-size: 12px; font-weight: 600; cursor: pointer;
+    .toggle-btn.on { background: #2e7d32; color: white; }
+    .toggle-btn.off { background: var(--card2); color: var(--muted); }
+    .history-controls { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .history-stat { font-size: 14px; color: var(--muted); }
+    .btn-clear {
+      padding: 8px 16px; background: none; border: 1px solid rgba(255,80,80,0.4);
+      border-radius: 100px; color: #ff6b6b; font-size: 13px; font-weight: 600; cursor: pointer;
     }
-    .card-block { background: var(--card); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
-    .card-title {
-      font-size: 13px; font-weight: 700; color: var(--muted);
-      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px;
-    }
-
-    .admin-profiles-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
-    .admin-profile-row {
-      display: flex; align-items: center; gap: 12px;
-      padding: 14px; background: var(--card); border-radius: var(--radius);
-    }
-    .admin-profile-info { flex: 1; }
-    .admin-profile-name { font-size: 15px; font-weight: 700; }
-    .admin-profile-detail { font-size: 12px; color: var(--muted); margin-top: 3px; }
-    .color-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
-    .color-swatch {
-      width: 34px; height: 34px; border-radius: 50%;
-      cursor: pointer; border: 3px solid transparent;
-      transition: border-color 0.15s, transform 0.15s;
-    }
-    .color-swatch.sel { border-color: white; transform: scale(1.15); }
-
     .history-list { display: flex; flex-direction: column; gap: 8px; }
     .history-row {
-      display: flex; gap: 12px; align-items: center;
-      padding: 11px 12px; background: var(--card); border-radius: 14px;
+      display: flex; gap: 12px; align-items: center; padding: 11px 12px;
+      background: var(--card); border-radius: 14px;
     }
     .history-thumb { width: 72px; height: 40px; border-radius: 7px; object-fit: cover; background: var(--bg2); flex-shrink: 0; }
     .history-info { flex: 1; min-width: 0; }
     .history-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .history-meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
-
-    .settings-card { background: var(--card); border-radius: var(--radius); overflow: hidden; margin-bottom: 8px; }
+    .empty-history { text-align: center; padding: 48px 20px; color: var(--muted); }
+    .empty-history .bm { font-size: 48px; margin-bottom: 12px; }
+    .settings-group { margin-bottom: 24px; }
+    .settings-group-title {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.2px; color: var(--muted); margin-bottom: 10px;
+    }
+    .settings-card { background: var(--card); border-radius: var(--radius); overflow: hidden; }
     .settings-row {
-      display: flex; align-items: center; gap: 12px;
-      padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
     }
     .settings-row:last-child { border-bottom: none; }
     .settings-row-label { flex: 1; font-size: 14px; }
     .settings-input {
-      padding: 8px 12px; background: var(--bg2);
-      border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
-      color: var(--text); font-size: 13px; text-align: right; width: 180px;
+      padding: 8px 12px; background: var(--bg2); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; color: var(--text); font-size: 13px; text-align: right; width: 180px;
     }
     .settings-input:focus { outline: none; border-color: var(--accent); }
-    .settings-select {
-      padding: 8px 12px; background: var(--bg2);
-      border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
-      color: var(--text); font-size: 13px; width: 180px;
-      -webkit-appearance: none; appearance: none;
-    }
     .channel-edit-row { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); }
     .channel-edit-row:last-child { border-bottom: none; }
     .channel-edit-label { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
     .channel-id-input {
       width: 100%; padding: 8px 12px; background: var(--bg2);
-      border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
-      color: var(--text); font-size: 11px;
-      font-family: 'SF Mono','Courier New',monospace;
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--text);
+      font-size: 11px; font-family: 'SF Mono', 'Courier New', monospace;
     }
     .channel-id-input:focus { outline: none; border-color: var(--accent); }
-    .settings-save-btn {
-      margin-top: 8px; padding: 11px 22px; background: var(--accent);
-      border: none; border-radius: 10px; color: #0f0e17;
-      font-size: 14px; font-weight: 800; cursor: pointer;
-    }
     .cat-section-header {
-      font-size: 12px; font-weight: 700; color: var(--accent);
+      font-size: 13px; font-weight: 700; color: var(--accent);
       padding: 12px 0 6px; text-transform: uppercase; letter-spacing: 0.8px;
     }
-    .device-lock-status {
-      padding: 12px 16px; background: rgba(232,184,75,0.1);
-      border: 1px solid rgba(232,184,75,0.3); border-radius: 12px;
-      font-size: 14px; margin-bottom: 10px;
+    .settings-save-btn {
+      margin-top: 8px; padding: 11px 22px; background: var(--accent); border: none;
+      border-radius: 10px; color: #0f0e17; font-size: 14px; font-weight: 800; cursor: pointer;
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); } 20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(6px); }
     }
   </style>
 </head>
 <body>
-
-<!-- SCREEN 1: KID HOME — categories grid, no profiles visible -->
 <div id="screen-kid-home" class="screen active">
   <div class="kid-header">
-    <!-- Title tapped 5× fast = secret parent access -->
-    <div class="kid-greeting" id="secret-tap-target">📺 <em>KidsTV</em></div>
+    <div class="kid-title" id="secret-tap-target">📺 KidsTV</div>
   </div>
-  <div class="scroll-body">
-    <div class="kid-home-scroll" id="kid-home-body"></div>
-  </div>
+  <div class="kid-home-body" id="kid-home-body"></div>
 </div>
-
-<!-- SCREEN 4: VIDEO PLAYER -->
-<div id="screen-player" class="screen">
-  <div id="player-wrap"></div>
-
-  <div id="player-loading">
-    <div class="spinner"></div>
-    <div>Loading videos…</div>
-  </div>
-
-  <div id="player-tap"></div>
-
-  <div id="player-top">
-    <button class="player-stop-btn" onclick="stopPlayer()">⬅ Stop</button>
-    <div id="player-video-title"></div>
-  </div>
-
-  <div id="player-bottom">
-    <div id="player-dots"></div>
-    <div class="player-nav-row">
-      <button class="player-nav-btn" onclick="prevVideo()">◀ Prev</button>
-      <div class="player-counter" id="player-counter"></div>
-      <button class="player-nav-btn" onclick="nextVideo()">Next ▶</button>
+<div id="screen-category" class="screen">
+  <div class="cat-header-banner">
+    <button class="btn-icon" onclick="goBack()">⬅</button>
+    <div class="cat-header-icon" id="cat-header-icon"></div>
+    <div>
+      <div class="cat-header-name" id="cat-header-name"></div>
+      <div class="cat-header-count" id="cat-header-count"></div>
     </div>
   </div>
+  <div id="video-grid-container"></div>
 </div>
-
-<!-- SCREEN 5: ADMIN PIN -->
+<div id="screen-player" class="screen">
+  <div id="player-wrap"></div>
+  <div class="player-overlay">
+    <button class="player-back" onclick="closePlayer()">⬅ Stop</button>
+    <span class="player-title-text" id="player-title-text"></span>
+    <button class="player-next" onclick="nextVideo()">Next ▶▶</button>
+  </div>
+</div>
 <div id="screen-admin-pin" class="screen">
   <div class="pin-card">
     <div class="pin-lock">🔒</div>
     <div class="pin-card-title">Parent Area</div>
     <div class="pin-card-sub">Enter your PIN to continue</div>
     <div class="pin-dots" id="pin-dots">
-      <div class="pin-dot" id="dot-0"></div>
-      <div class="pin-dot" id="dot-1"></div>
-      <div class="pin-dot" id="dot-2"></div>
-      <div class="pin-dot" id="dot-3"></div>
+      <div class="pin-dot" id="dot-0"></div><div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div><div class="pin-dot" id="dot-3"></div>
     </div>
     <div class="pin-keypad">
       <button class="pin-key" onclick="pinTap('1')">1</button>
@@ -522,58 +302,44 @@
       <button class="pin-key del" onclick="pinDel()">⌫</button>
     </div>
     <div class="pin-error" id="pin-error"></div>
-    <button class="pin-cancel" id="pin-cancel-btn">Cancel</button>
+    <button class="pin-cancel" onclick="goBack()">Cancel</button>
   </div>
 </div>
-
-<!-- SCREEN 6: ADMIN DASHBOARD -->
 <div id="screen-admin" class="screen">
   <div class="admin-header">
-    <button class="btn-icon" onclick="exitAdmin()">⬅</button>
+    <button class="btn-icon" onclick="goBack()">⬅</button>
     <div class="screen-title">Parent Area</div>
     <span class="admin-badge">ADMIN</span>
   </div>
   <div class="admin-tabs">
-    <button class="tab-btn active" onclick="switchTab('profiles')">Categories</button>
+    <button class="tab-btn active" onclick="switchTab('categories')">Categories</button>
     <button class="tab-btn" onclick="switchTab('history')">History</button>
     <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
   </div>
-  <div class="scroll-body">
-    <div id="tab-profiles" class="tab-pane active">
-      <div class="admin-profiles-list" id="admin-profiles-list"></div>
-    </div>
-    <div id="tab-history" class="tab-pane">
-      <div id="history-content"></div>
-    </div>
-    <div id="tab-settings" class="tab-pane">
-      <!-- App Settings -->
-      <div class="card-title" style="margin-bottom:10px;">App Settings</div>
+  <div id="tab-categories" class="tab-pane active"><div id="admin-categories-list"></div></div>
+  <div id="tab-history" class="tab-pane"><div id="history-content"></div></div>
+  <div id="tab-settings" class="tab-pane">
+    <div class="settings-group">
+      <div class="settings-group-title">App Settings</div>
       <div class="settings-card">
         <div class="settings-row">
           <div class="settings-row-label">Admin PIN</div>
-          <input class="settings-input" id="settings-pin" type="password" maxlength="6" placeholder="(leave blank to keep)" />
+          <input class="settings-input" id="settings-pin" type="password" maxlength="6" placeholder="(keep current)" />
         </div>
         <div class="settings-row">
           <div class="settings-row-label">YouTube API Key</div>
-          <input class="settings-input" id="settings-apikey" type="password" placeholder="(leave blank to keep)" />
+          <input class="settings-input" id="settings-apikey" type="password" placeholder="(keep current)" />
         </div>
       </div>
-      <button class="settings-save-btn" onclick="saveAppSettings()">Save Settings</button>
-
-      <!-- Channel IDs -->
-      <div class="card-title" style="margin-top:24px;margin-bottom:10px;">Channel IDs</div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5;">If a channel shows no videos, paste its YouTube Channel ID here. Find it by going to the channel on YouTube → About → Share Channel → Copy Channel ID.</p>
+      <div style="margin-top:10px;"><button class="settings-save-btn" onclick="saveAppSettings()">Save Settings</button></div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-title">Channel IDs</div>
       <div id="channel-settings-list"></div>
-      <button class="settings-save-btn" onclick="saveChannelSettings()">Save Channel IDs</button>
+      <div style="margin-top:10px;"><button class="settings-save-btn" onclick="saveChannelSettings()">Save Channel IDs</button></div>
     </div>
   </div>
-</div>
-
-<script>
-// ═══════════════════════════════════════════════════════
-// DATA — CATEGORIES & CHANNELS
-// ═══════════════════════════════════════════════════════
-
+</div><script>
 const DEFAULT_CONFIG = {
   apiKey: 'AIzaSyClAoT7E66zSOCoFlAMy-E2ueJUD7Os58g',
   adminPin: '1234',
@@ -586,7 +352,7 @@ const DEFAULT_CATEGORIES = [
       { name: 'Thumb Follow Me (Come Follow Me)', id: 'UCnCfMlmBr4LoJ2Qx0FAwCpA' },
       { name: 'Latter Day Kids',                  id: 'UCqcV3DaWnvf2j-Dl1w7nNyA' },
       { name: 'The Church of Jesus Christ',       id: 'UCdNjexbIS_NKJC4ZRwKf9ag' },
-      { name: 'LDS Primary Songs Sing Along',     id: 'UCmklSEnBOFRzBSKi3nrkUvg' },
+      { name: 'LDS Primary Songs Sing Along',     id: 'UC_VqUVhX0BgjFFQ3MYJbs5w' },
     ]
   },
   {
@@ -600,18 +366,17 @@ const DEFAULT_CATEGORIES = [
   {
     id: 'science', name: 'Science & Experiments', emoji: '🔬', color: '#2196f3',
     channels: [
-      { name: 'CrunchLabs (Mark Rober)',  id: 'UC6dKbSjZisu-fnPZNbycM1Q' },
-      { name: 'SciShow Kids',             id: 'UCZVojhlANR-8-WXjIOmVWoA' },
-      { name: "Emily's Wonder Lab",       id: 'UCj7mQxv2dAm6mhyx8-kb5Xw' },
-      { name: 'Science Max Experiments',  id: 'UCR0V4NtY3XBjNiMcfSQHcRQ' },
+      { name: 'Mark Rober',                       id: 'UCY1kMZp36IQSyNx_9h4mpCg' },
+      { name: 'SciShow Kids',                     id: 'UCZVojhlANR-8-WXjIOmVWoA' },
+      { name: "Emily's Wonder Lab (Netflix Jr)",  id: 'UCAJnyTWJPpKXuwgWQDdNWrQ' },
+      { name: 'Science Max',                      id: 'UCR0V4NtY3XBjNiMcfSQHcRQ' },
     ]
   },
   {
-    // Space uses ONLY NASA to avoid pulling animal/science content from shared channels
     id: 'space', name: 'Space & Exploration', emoji: '🚀', color: '#1565c0',
     channels: [
-      { name: 'NASA Kids Club', id: 'UCRqKlt4G1EvNg_rhfNUxwRw' },
-      { name: 'NASA (Main)',    id: 'UCVJ7gfe6wr0RgHEGzj5iWAg' },
+      { name: 'NASA Kids Club',  id: 'UCRqKlt4G1EvNg_rhfNUxwRw' },
+      { name: 'NASA (Official)', id: 'UCVJ7gfe6wr0RgHEGzj5iWAg' },
     ]
   },
   {
@@ -625,221 +390,117 @@ const DEFAULT_CATEGORIES = [
   {
     id: 'learning', name: 'Songs & Learning', emoji: '🎵', color: '#e91e63',
     channels: [
-      { name: 'Songs for Littles (Miss Rachel)', id: 'UCG2CL6EUjG8TVT1Tpl9nJdg' },
-      { name: 'Numberblocks',                    id: 'UCPlwvN0w4qFSP1FllALB92w' },
-      { name: 'Super Simple Songs',              id: 'UCLsooMJoIpl_HBLjjlhP3wQ' },
-      { name: 'Scratch Garden',                  id: 'UCiv0FCjvbMRaZX0M-pjqkGA' },
-      { name: 'Alphablocks',                     id: 'UCsKCQRt12yZm5mQiqGMrX7g' },
+      { name: 'Ms. Rachel',        id: 'UCG2CL6EUjG8TVT1Tpl9nJdg' },
+      { name: 'Numberblocks',      id: 'UCPlwvN0w4qFSP1FllALB92w' },
+      { name: 'Super Simple Songs',id: 'UCLsooMJoIpl_7ux2jvdPB-Q' },
+      { name: 'Scratch Garden',    id: 'UC8NFs-VWUsyuq4zaYVVMgCQ' },
+      { name: 'Alphablocks',       id: 'UC_qs3c0ehDvZkbiEbOj6Drg' },
     ]
   },
   {
     id: 'stories', name: 'Stories & Books', emoji: '📚', color: '#795548',
     channels: [
-      { name: 'Storyline Online',    id: 'UCbkD9MBdK5JW1jQhBXy8sQg' },
-      { name: 'Story Time at Awnie', id: 'UCPvbCJvhYxIbSt-SU6e35XA' },
+      { name: 'Storyline Online',      id: 'UCbkD9MBdK5JW1jQhBXy8sQg' },
+      { name: "Story Time at Awnie's", id: 'UCPvbCJvhYxIbSt-SU6e35XA' },
     ]
   },
   {
     id: 'building', name: 'Building & Making', emoji: '🔧', color: '#00bcd4',
     channels: [
-      { name: 'LEGO', id: 'UCP2SrSHgCbaSFBpwkW5eacg' },
+      { name: 'LEGO (Official)', id: 'UCP-Ng5SXUEt0VE-TXqRdL6g' },
     ]
   },
   {
     id: 'geography', name: 'World & People', emoji: '🌍', color: '#009688',
     channels: [
-      { name: 'Geography Now!', id: 'UCmmPgObSUPw1HL2lq7GGckA' },
       { name: "Let's Go Luna!", id: 'UCW6BT5e8UxY-0F5Nv2jREDQ' },
+      { name: 'Geography Now!', id: 'UCmmPgObSUPw1HL2lq7GGckA' },
     ]
   },
 ];
 
-const AVATAR_COLORS = ['#e8b84b','#7c6fcd','#4caf50','#e91e63','#2196f3','#ff9800','#00bcd4','#9c27b0'];
-
-// ═══════════════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════════════
-
-const S = {
-  profile: null,
-  pinEntry: '',
-  selectedColor: AVATAR_COLORS[0],
-  videos: [],
-  videoIdx: 0,
-  watchedSet: new Set(),
-  currentCatId: null,
-  controlsTimer: null,
-  videoCache: {},
-  CACHE_TTL: 60 * 60 * 1000,
+let S = {
+  currentCategoryId: null, currentVideos: [], currentVideoIndex: 0,
+  pinEntry: '', activeTab: 'categories', videoCache: {}, CACHE_TTL: 60*60*1000,
 };
-
-// ═══════════════════════════════════════════════════════
-// STORAGE
-// ═══════════════════════════════════════════════════════
+const NAV_STACK = [];
 
 const store = {
-  get: (k, def) => { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } },
-  set: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
+  get: (key, def) => { try { const v = JSON.parse(localStorage.getItem(key)); return v != null ? v : def; } catch { return def; } },
+  set: (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
 };
 
-const getProfiles  = () => store.get('ktv_profiles', []);
-const saveProfiles = p  => store.set('ktv_profiles', p);
-const getHistory   = () => store.get('ktv_history', []);
-const saveHistory  = h  => store.set('ktv_history', h);
-
-function getConfig() {
-  return Object.assign({}, DEFAULT_CONFIG, store.get('ktv_config', {}));
-}
+function getConfig() { return Object.assign({}, DEFAULT_CONFIG, store.get('ktv_config', {})); }
 function saveConfig(c) { store.set('ktv_config', c); }
 
 function getCategories() {
-  const stored = store.get('ktv_categories', null);
-  if (!stored) return DEFAULT_CATEGORIES;
-  return DEFAULT_CATEGORIES.map(def => {
-    const s = stored.find(x => x.id === def.id);
-    if (!s) return def;
-    return { ...def, channels: def.channels.map((ch, i) => ({ ...ch, id: (s.channels[i]?.id) || ch.id })) };
-  });
+  try {
+    const stored = store.get('ktv_categories', null);
+    if (!stored) return DEFAULT_CATEGORIES;
+    return DEFAULT_CATEGORIES.map(defCat => {
+      const storedCat = stored.find(s => s.id === defCat.id);
+      if (!storedCat) return defCat;
+      return { ...defCat, channels: defCat.channels.map((ch, i) => ({ ...ch, id: (storedCat.channels[i] && storedCat.channels[i].id) || ch.id })) };
+    });
+  } catch { return DEFAULT_CATEGORIES; }
 }
-function saveCategories(c) { store.set('ktv_categories', c); }
-
-function logHistory(profileName, video) {
+function saveCategories(cats) { store.set('ktv_categories', cats); }
+function getHistory() { return store.get('ktv_history', []); }
+function saveHistory(h) { store.set('ktv_history', h); }
+function addToHistory(video) {
   const h = getHistory();
-  h.unshift({ profileName, videoId: video.videoId, videoTitle: video.title, channelName: video.channelName, thumb: video.thumb, watchedAt: Date.now() });
+  h.unshift({ videoId: video.videoId, videoTitle: video.title, channelName: video.channelName, thumb: video.thumb, watchedAt: Date.now() });
   saveHistory(h.slice(0, 300));
 }
-
-// ═══════════════════════════════════════════════════════
-// NAVIGATION — custom stack, no URL changes
-// ═══════════════════════════════════════════════════════
-
-const NAV_STACK = [];
 
 function _setScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const el = document.getElementById(id);
-  if (el) {
-    el.classList.add('active');
-    const sb = el.querySelector('.scroll-body');
-    if (sb) sb.scrollTop = 0;
-  }
+  if (el) el.classList.add('active');
 }
-
 function showScreen(id) {
-  const curr = document.querySelector('.screen.active')?.id;
-  if (curr && curr !== id) NAV_STACK.push(curr);
+  const current = document.querySelector('.screen.active');
+  if (current && current.id !== id) NAV_STACK.push(current.id);
   _setScreen(id);
 }
-
 function goBack() {
-  const curr = document.querySelector('.screen.active')?.id;
-  if (curr === 'screen-player') { _stopPlayer(); return; }
-  if (NAV_STACK.length > 0) {
-    const prev = NAV_STACK.pop();
-    _setScreen(prev);
-    if (prev === 'screen-kid-home') renderKidHome();
-  } else {
-    renderKidHome();
-    _setScreen('screen-kid-home');
-  }
+  const prev = NAV_STACK.pop();
+  if (!prev) { _setScreen('screen-kid-home'); return; }
+  if (prev === 'screen-player') document.getElementById('player-wrap').innerHTML = '';
+  _setScreen(prev);
 }
+history.pushState({ kidstv: 1 }, '');
+window.addEventListener('popstate', () => { goBack(); history.pushState({ kidstv: 1 }, ''); });
 
-window.addEventListener('popstate', () => {
-  goBack();
-  history.pushState({ kidstv: 1 }, '');
-});
-
-// ═══════════════════════════════════════════════════════
-// SECRET PARENT ACCESS — tap title 5× within 3 seconds
-// ═══════════════════════════════════════════════════════
-
-let secretTapCount = 0;
-let secretTapTimer = null;
-
+let _tapCount = 0, _tapTimer = null;
 document.addEventListener('DOMContentLoaded', () => {
-  const target = document.getElementById('secret-tap-target');
-  if (!target) return;
-  target.addEventListener('click', () => {
-    secretTapCount++;
-    clearTimeout(secretTapTimer);
-    if (secretTapCount >= 5) {
-      secretTapCount = 0;
-      goAdminPin();
-    } else {
-      secretTapTimer = setTimeout(() => { secretTapCount = 0; }, 3000);
-    }
+  document.getElementById('secret-tap-target').addEventListener('click', () => {
+    _tapCount++;
+    clearTimeout(_tapTimer);
+    if (_tapCount >= 5) { _tapCount = 0; goAdminPin(); }
+    else { _tapTimer = setTimeout(() => { _tapCount = 0; }, 3000); }
   });
 });
-
-// ═══════════════════════════════════════════════════════
-// SCREEN 1 — PROFILE SELECTION
-// ═══════════════════════════════════════════════════════
-
-function renderProfiles() {
-  const grid = document.getElementById('profiles-grid');
-  const profiles = getProfiles();
-  grid.innerHTML = '';
-  if (!profiles.length) {
-    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--muted);">
-      <div style="font-size:48px;margin-bottom:12px;">👶</div>
-      <div style="font-size:16px;font-weight:600;">No profiles yet</div>
-      <div style="font-size:13px;margin-top:6px;">Tap <strong>Parent Area</strong> to add your kids</div>
-    </div>`;
-    return;
-  }
-  profiles.forEach(p => {
-    const subs = (p.subscriptions || []).length;
-    const card = document.createElement('div');
-    card.className = 'profile-card';
-    card.innerHTML = `
-      <div class="profile-avatar" style="background:${p.color}">${esc(p.name[0].toUpperCase())}</div>
-      <div class="profile-card-name">${esc(p.name)}</div>
-      <div class="profile-card-subs">${subs} channel${subs !== 1 ? 's' : ''}</div>
-    `;
-    card.addEventListener('click', () => selectProfile(p.id));
-    grid.appendChild(card);
-  });
-}
-
-function selectProfile(profileId) {
-  const p = getProfiles().find(x => x.id === profileId);
-  if (!p) return;
-  S.profile = p;
-  document.getElementById('kid-name-display').textContent = p.name;
-
-  const locked = store.get('ktv_device_profile', null);
-  // Hide switch-profile and parent-lock buttons when device is locked to this profile
-  document.getElementById('kid-switch-btn').style.display  = locked ? 'none' : 'flex';
-  document.getElementById('kid-parent-btn').style.display  = locked ? 'none' : 'flex';
-
-  NAV_STACK.length = 0;
-  renderKidHome();
-  _setScreen('screen-kid-home');
-}
-
-// ═══════════════════════════════════════════════════════
-// SCREEN 2 — KID HOME
-// ═══════════════════════════════════════════════════════
 
 function renderKidHome() {
-  const body = document.getElementById('kid-home-body');
-  body.innerHTML = '';
-
-  // Get enabled categories (parent can disable in admin)
   const disabled = store.get('ktv_disabled_cats', []);
   const cats = getCategories().filter(c => !disabled.includes(c.id));
-
+  const body = document.getElementById('kid-home-body');
+  body.innerHTML = '';
+  if (cats.length === 0) {
+    body.innerHTML = `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:40px;"><div style="font-size:64px">🔒</div><div style="font-size:20px;font-weight:800;">All channels off</div><div style="color:var(--muted);font-size:15px;">Ask a parent to turn some on.</div></div>`;
+    return;
+  }
   const label = document.createElement('div');
   label.className = 'section-label';
   label.textContent = 'What do you want to watch?';
   body.appendChild(label);
-
   const grid = document.createElement('div');
   grid.className = 'cat-grid';
   cats.forEach(cat => {
     const card = document.createElement('div');
     card.className = 'cat-card';
-    card.style.background = `linear-gradient(135deg, ${hexA(cat.color,0.93)}, ${hexA(cat.color,0.55)})`;
+    card.style.background = `linear-gradient(135deg, ${hexA(cat.color, 0.93)}, ${hexA(cat.color, 0.55)})`;
     card.innerHTML = `<div class="cat-card-emoji">${cat.emoji}</div><div class="cat-card-name">${esc(cat.name)}</div>`;
     card.addEventListener('click', () => openCategory(cat));
     grid.appendChild(card);
@@ -847,435 +508,248 @@ function renderKidHome() {
   body.appendChild(grid);
 }
 
-// ═══════════════════════════════════════════════════════
-// SCREEN 3 — EXPLORE
-// ═══════════════════════════════════════════════════════
-
-function openExplore() {
-  renderExplore();
-  showScreen('screen-explore');
-}
-
-function renderExplore() {
-  const subs = S.profile?.subscriptions || [];
-  const list = document.getElementById('explore-list');
-  list.innerHTML = '';
-  getCategories().forEach(cat => {
-    const on = subs.includes(cat.id);
-    const row = document.createElement('div');
-    row.className = 'explore-row';
-    row.innerHTML = `
-      <div class="explore-icon" style="background:${hexA(cat.color,0.2)}">${cat.emoji}</div>
-      <div class="explore-info">
-        <div class="explore-name">${esc(cat.name)}</div>
-        <div class="explore-channels">${esc(cat.channels.map(c => c.name).join(', '))}</div>
-      </div>
-      <button class="sub-btn ${on ? 'on' : 'off'}">${on ? '✓ Subscribed' : '+ Subscribe'}</button>
-    `;
-    row.querySelector('.sub-btn').addEventListener('click', () => toggleSub(cat.id));
-    list.appendChild(row);
-  });
-}
-
-function toggleSub(catId) {
-  if (!S.profile) return;
-  const profiles = getProfiles();
-  const idx = profiles.findIndex(p => p.id === S.profile.id);
-  if (idx < 0) return;
-  const subs = profiles[idx].subscriptions || [];
-  const pos = subs.indexOf(catId);
-  if (pos < 0) subs.push(catId); else subs.splice(pos, 1);
-  profiles[idx].subscriptions = subs;
-  saveProfiles(profiles);
-  S.profile = profiles[idx];
-  renderExplore();
-}
-
-// ═══════════════════════════════════════════════════════
-// SCREEN 4 — AUTO-PLAY VIDEO PLAYER
-// ═══════════════════════════════════════════════════════
-
 async function openCategory(cat) {
-  S.currentCatId = cat.id;
-  S.watchedSet = new Set();
-  showScreen('screen-player');
-
-  const loadEl = document.getElementById('player-loading');
-  loadEl.innerHTML = `<div class="spinner"></div><div>Loading ${esc(cat.name)}…</div>`;
-  loadEl.classList.remove('hidden');
-  document.getElementById('player-wrap').innerHTML = '';
-
-  // Check in-memory cache
+  S.currentCategoryId = cat.id;
+  const icon = document.getElementById('cat-header-icon');
+  icon.textContent = cat.emoji;
+  icon.style.background = hexA(cat.color, 0.2);
+  document.getElementById('cat-header-name').textContent = cat.name;
+  document.getElementById('cat-header-count').textContent = '';
+  const container = document.getElementById('video-grid-container');
+  container.innerHTML = `<div class="loading-center"><div class="spinner"></div><div>Loading videos…</div></div>`;
+  showScreen('screen-category');
   const cached = S.videoCache[cat.id];
-  if (cached && Date.now() - cached.ts < S.CACHE_TTL) {
-    startPlaylist(cached.videos, 0);
-    return;
+  if (cached && (Date.now() - cached.ts < S.CACHE_TTL)) { renderVideoGrid(cached.videos, cat); return; }
+  const config = getConfig();
+  const allVideos = [];
+  try {
+    const firstResults = await Promise.allSettled(cat.channels.map(ch => fetchChannelPage(ch, config.apiKey, null)));
+    const nextTokens = [];
+    firstResults.forEach((r, i) => {
+      if (r.status === 'fulfilled') { allVideos.push(...r.value.videos); nextTokens.push({ channel: cat.channels[i], token: r.value.nextPageToken }); }
+    });
+    if (allVideos.length === 0) {
+      container.innerHTML = `<div class="error-state"><div class="err-icon">😔</div><h3>No videos found</h3><p>Channel ID may need updating.<br>Go to Parent Area → Settings.</p></div>`;
+      return;
+    }
+    const shuffled = shuffleArray(allVideos);
+    S.videoCache[cat.id] = { videos: shuffled, ts: Date.now() };
+    renderVideoGrid(shuffled, cat);
+    fetchMorePages(cat, config.apiKey, nextTokens, 2);
+  } catch (err) {
+    container.innerHTML = `<div class="error-state"><div class="err-icon">⚠️</div><h3>Couldn't load videos</h3><p>${esc(String(err.message || 'Unknown error'))}<br><br>Check the API key in Settings.</p></div>`;
   }
-
-  const { apiKey } = getConfig();
-  const results = await Promise.allSettled(cat.channels.map(ch => fetchChannel(ch, apiKey)));
-  const videos = [];
-  results.forEach(r => { if (r.status === 'fulfilled') videos.push(...r.value); });
-
-  if (!videos.length) {
-    loadEl.innerHTML = `<div style="font-size:48px">😔</div>
-      <div style="font-size:18px;font-weight:700;margin-top:8px;">No videos found</div>
-      <div style="font-size:14px;color:var(--muted);margin-top:8px;">Ask a parent to check Settings.</div>
-      <button class="player-stop-btn" style="margin-top:20px;" onclick="stopPlayer()">← Go Back</button>`;
-    return;
-  }
-
-  const shuffled = shuffle(videos);
-  S.videoCache[cat.id] = { videos: shuffled, ts: Date.now() };
-  startPlaylist(shuffled, 0);
 }
 
-async function fetchChannel(channel, apiKey) {
-  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${encodeURIComponent(channel.id)}&maxResults=50&order=date&type=video&safeSearch=strict&videoEmbeddable=true&key=${encodeURIComponent(apiKey)}`;
+async function fetchChannelPage(channel, apiKey, pageToken) {
+  let url = 'https://www.googleapis.com/youtube/v3/search?part=snippet'
+    + '&channelId=' + encodeURIComponent(channel.id)
+    + '&maxResults=50&order=date&type=video&safeSearch=strict&videoEmbeddable=true'
+    + '&key=' + encodeURIComponent(apiKey);
+  if (pageToken) url += '&pageToken=' + encodeURIComponent(pageToken);
   const res = await fetch(url);
-  if (!res.ok) throw new Error('API error ' + res.status);
+  if (!res.ok) throw new Error('YouTube API error ' + res.status);
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
-  return (data.items || []).map(item => ({
-    videoId: item.id.videoId,
-    title: item.snippet.title,
-    channelName: item.snippet.channelTitle,
-    thumb: (item.snippet.thumbnails?.medium || item.snippet.thumbnails?.default || {}).url || '',
-  })).filter(v => v.videoId);
+  const videos = (data.items || [])
+    .map(item => ({
+      videoId: item.id.videoId, title: item.snippet.title, channelName: item.snippet.channelTitle,
+      thumb: ((item.snippet.thumbnails || {}).medium || (item.snippet.thumbnails || {}).default || {}).url || '',
+      publishedAt: item.snippet.publishedAt,
+    }))
+    .filter(v => v.videoId)
+    .filter(v => !/#shorts/i.test(v.title));
+  return { videos, nextPageToken: data.nextPageToken || null };
 }
 
-function startPlaylist(videos, idx) {
-  S.videos = videos;
-  S.videoIdx = idx;
-  playVideo(idx);
-}
-
-function playVideo(idx) {
-  S.videoIdx = idx;
-  S.watchedSet.add(idx);
-  const video = S.videos[idx];
-  if (!video) return;
-
-  document.getElementById('player-video-title').textContent = video.title;
-  document.getElementById('player-counter').textContent = `${idx + 1} / ${S.videos.length}`;
-
-  // youtube-nocookie.com reduces tracking-based ads
-  document.getElementById('player-wrap').innerHTML = `<iframe
-    src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.videoId)}?autoplay=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3"
-    allow="autoplay; fullscreen; picture-in-picture"
-    allowfullscreen
-  ></iframe>`;
-
-  document.getElementById('player-loading').classList.add('hidden');
-
-  // Build dots — cap at 50, show pill for active, filled for watched
-  const dotsEl = document.getElementById('player-dots');
-  dotsEl.innerHTML = '';
-  const max = Math.min(S.videos.length, 50);
-  for (let i = 0; i < max; i++) {
-    const d = document.createElement('div');
-    const isActive = i === idx;
-    const isWatched = S.watchedSet.has(i) && !isActive;
-    d.className = 'player-dot' + (isActive ? ' active' : '') + (isWatched ? ' watched' : '');
-    d.title = S.videos[i].title;
-    const captured = i;
-    d.addEventListener('click', e => { e.stopPropagation(); playVideo(captured); });
-    dotsEl.appendChild(d);
+async function fetchMorePages(cat, apiKey, nextTokens, pagesLeft) {
+  if (pagesLeft <= 0) return;
+  if (S.currentCategoryId !== cat.id) return;
+  const validItems = nextTokens.filter(n => n.token);
+  if (!validItems.length) return;
+  const results = await Promise.allSettled(validItems.map(n => fetchChannelPage(n.channel, apiKey, n.token)));
+  const newVideos = [];
+  const nextNextTokens = [];
+  results.forEach((r, i) => {
+    if (r.status === 'fulfilled') {
+      newVideos.push(...r.value.videos);
+      if (r.value.nextPageToken) nextNextTokens.push({ channel: validItems[i].channel, token: r.value.nextPageToken });
+    }
+  });
+  if (!newVideos.length || S.currentCategoryId !== cat.id) return;
+  const existing = S.videoCache[cat.id];
+  if (!existing) return;
+  const combined = shuffleArray([...existing.videos, ...newVideos]);
+  S.videoCache[cat.id] = { ...existing, videos: combined };
+  const countEl = document.getElementById('cat-header-count');
+  if (countEl && document.getElementById('screen-category').classList.contains('active')) {
+    countEl.textContent = combined.length + ' videos';
+    renderVideoGrid(combined, cat);
   }
-  // Scroll active dot into view
-  if (dotsEl.children[idx]) {
-    dotsEl.children[idx].scrollIntoView({ inline: 'center', behavior: 'smooth' });
-  }
-
-  if (S.profile) logHistory(S.profile.name, video);
-
-  // Reset tap overlay to active state before showing controls
-  document.getElementById('player-tap').style.pointerEvents = 'all';
-  showControls();
+  if (nextNextTokens.length > 0) fetchMorePages(cat, apiKey, nextNextTokens, pagesLeft - 1);
 }
 
-function nextVideo() {
-  playVideo((S.videoIdx + 1) % S.videos.length);
-}
-function prevVideo() {
-  playVideo((S.videoIdx - 1 + S.videos.length) % S.videos.length);
-}
-
-// Internal stop — doesn't push to nav stack
-function _stopPlayer() {
-  clearTimeout(S.controlsTimer);
-  document.getElementById('player-wrap').innerHTML = '';
-  // Remove any player entries from the nav stack
-  while (NAV_STACK.includes('screen-player')) {
-    NAV_STACK.splice(NAV_STACK.indexOf('screen-player'), 1);
-  }
-  renderKidHome();
-  _setScreen('screen-kid-home');
+function renderVideoGrid(videos, cat) {
+  const container = document.getElementById('video-grid-container');
+  document.getElementById('cat-header-count').textContent = videos.length + ' videos';
+  const grid = document.createElement('div');
+  grid.className = 'video-grid';
+  videos.forEach((v, i) => {
+    const card = document.createElement('div');
+    card.className = 'video-card';
+    card.innerHTML = `<div class="video-thumb-wrap">${v.thumb ? `<img class="video-thumb" src="${esc(v.thumb)}" alt="" loading="lazy">` : ''}<div class="play-overlay"><div class="play-overlay-icon">▶</div></div></div><div class="video-info"><div class="video-title">${esc(v.title)}</div><div class="video-channel">${esc(v.channelName)}</div></div>`;
+    card.addEventListener('click', () => playVideo(videos, i));
+    grid.appendChild(card);
+  });
+  container.innerHTML = '';
+  container.appendChild(grid);
 }
 
-// Public stop (called from button onclick)
-function stopPlayer() { _stopPlayer(); }
-
-function showControls() {
-  clearTimeout(S.controlsTimer);
-  document.getElementById('player-top').classList.remove('hidden');
-  document.getElementById('player-bottom').classList.remove('hidden');
-  // Let taps pass through to YouTube so the user can pause/play
-  document.getElementById('player-tap').style.pointerEvents = 'none';
-  S.controlsTimer = setTimeout(hideControls, 4500);
+function playVideo(videos, index) {
+  S.currentVideos = videos; S.currentVideoIndex = index;
+  const video = videos[index];
+  document.getElementById('player-title-text').textContent = video.title;
+  document.getElementById('player-wrap').innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.videoId)}?autoplay=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen frameborder="0"></iframe>`;
+  showScreen('screen-player');
+  addToHistory(video);
 }
-
-function hideControls() {
-  document.getElementById('player-top').classList.add('hidden');
-  document.getElementById('player-bottom').classList.add('hidden');
-  // Re-enable tap overlay so next tap brings controls back
-  document.getElementById('player-tap').style.pointerEvents = 'all';
-}
-
-// Tap overlay only fires when controls are hidden (pointer-events: all)
-// When controls are visible, taps go straight through to YouTube for pause/play
-document.getElementById('player-tap').addEventListener('click', () => {
-  showControls();
-});
-
-// ═══════════════════════════════════════════════════════
-// SCREEN 5 — ADMIN PIN
-// ═══════════════════════════════════════════════════════
+function nextVideo() { playVideo(S.currentVideos, (S.currentVideoIndex + 1) % S.currentVideos.length); }
+function closePlayer() { document.getElementById('player-wrap').innerHTML = ''; goBack(); }
 
 function goAdminPin() {
-  S.pinEntry = '';
-  updatePinDots();
+  S.pinEntry = ''; updatePinDots();
   document.getElementById('pin-error').textContent = '';
-  document.getElementById('pin-cancel-btn').onclick = () => {
-    NAV_STACK.length = 0;
-    renderKidHome();
-    _setScreen('screen-kid-home');
-  };
   showScreen('screen-admin-pin');
 }
-
-function pinTap(d) {
+function pinTap(digit) {
   if (S.pinEntry.length >= 4) return;
-  S.pinEntry += d;
-  updatePinDots();
+  S.pinEntry += digit; updatePinDots();
   if (S.pinEntry.length === 4) setTimeout(checkPin, 150);
 }
-function pinDel() {
-  S.pinEntry = S.pinEntry.slice(0, -1);
-  updatePinDots();
-  document.getElementById('pin-error').textContent = '';
-}
-function updatePinDots() {
-  for (let i = 0; i < 4; i++)
-    document.getElementById('dot-' + i).classList.toggle('filled', i < S.pinEntry.length);
-}
+function pinDel() { S.pinEntry = S.pinEntry.slice(0, -1); updatePinDots(); document.getElementById('pin-error').textContent = ''; }
+function updatePinDots() { for (let i = 0; i < 4; i++) document.getElementById('dot-' + i).classList.toggle('filled', i < S.pinEntry.length); }
 function checkPin() {
-  if (S.pinEntry === getConfig().adminPin) {
-    S.pinEntry = '';
-    updatePinDots();
-    // Replace pin screen in stack with admin
-    if (NAV_STACK[NAV_STACK.length - 1] !== 'screen-admin-pin') {
-      // pop pin from stack so back from admin goes to correct place
-    }
-    openAdmin();
-  } else {
+  const config = getConfig();
+  if (S.pinEntry === config.adminPin) { S.pinEntry = ''; updatePinDots(); openAdmin(); }
+  else {
     document.getElementById('pin-error').textContent = 'Wrong PIN — try again';
-    S.pinEntry = '';
-    updatePinDots();
+    S.pinEntry = ''; updatePinDots();
     const dots = document.getElementById('pin-dots');
-    dots.style.animation = 'none';
-    void dots.offsetHeight;
-    dots.style.animation = 'shake 0.3s ease';
+    dots.style.animation = 'none'; void dots.offsetHeight; dots.style.animation = 'shake 0.3s ease';
   }
 }
 
-// ═══════════════════════════════════════════════════════
-// SCREEN 6 — ADMIN DASHBOARD
-// ═══════════════════════════════════════════════════════
-
-function openAdmin() {
-  const pinIdx = NAV_STACK.lastIndexOf('screen-admin-pin');
-  if (pinIdx >= 0) NAV_STACK.splice(pinIdx, 1);
-  switchTab('profiles');
-  showScreen('screen-admin');
-}
-
-function exitAdmin() {
-  NAV_STACK.length = 0;
-  renderKidHome();
-  _setScreen('screen-kid-home');
-}
-
+function openAdmin() { switchTab('categories'); showScreen('screen-admin'); }
 function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['profiles','history','settings'][i] === name);
-  });
+  S.activeTab = name;
+  const tabs = ['categories', 'history', 'settings'];
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', tabs[i] === name));
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  if (name === 'profiles') renderAdminProfiles();
+  if (name === 'categories') renderAdminCategories();
   else if (name === 'history') renderAdminHistory();
   else if (name === 'settings') renderAdminSettings();
 }
 
-// ── Categories (what kids can see) ──
-function renderAdminProfiles() {
-  const list = document.getElementById('admin-profiles-list');
-  list.innerHTML = '';
+function renderAdminCategories() {
   const disabled = store.get('ktv_disabled_cats', []);
-  const cats = getCategories();
-
-  const heading = document.createElement('div');
-  heading.style.cssText = 'font-size:14px;color:var(--muted);margin-bottom:14px;line-height:1.5;';
-  heading.textContent = 'Toggle which categories appear on the kids\' screen. All are on by default.';
-  list.appendChild(heading);
-
-  cats.forEach(cat => {
-    const isEnabled = !disabled.includes(cat.id);
+  const list = document.getElementById('admin-categories-list');
+  list.innerHTML = '';
+  getCategories().forEach(cat => {
+    const isOn = !disabled.includes(cat.id);
     const row = document.createElement('div');
-    row.className = 'admin-profile-row';
-    row.style.justifyContent = 'space-between';
-    row.innerHTML = `
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div style="width:44px;height:44px;border-radius:14px;background:${hexA(cat.color,0.25)};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">${cat.emoji}</div>
-        <div>
-          <div style="font-size:15px;font-weight:700;">${esc(cat.name)}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;">${esc(cat.channels.map(c=>c.name).join(', '))}</div>
-        </div>
-      </div>
-      <button class="sub-btn ${isEnabled ? 'on' : 'off'}" style="flex-shrink:0;">${isEnabled ? '✓ On' : 'Off'}</button>
-    `;
-    row.querySelector('.sub-btn').addEventListener('click', () => toggleCat(cat.id));
+    row.className = 'cat-toggle-row';
+    row.innerHTML = `<div class="cat-toggle-icon">${cat.emoji}</div><div class="cat-toggle-info"><div class="cat-toggle-name">${esc(cat.name)}</div><div class="cat-toggle-channels">${esc(cat.channels.map(c => c.name).join(', '))}</div></div><button class="toggle-btn ${isOn ? 'on' : 'off'}" data-catid="${esc(cat.id)}">${isOn ? '✓ On' : 'Off'}</button>`;
+    row.querySelector('.toggle-btn').addEventListener('click', () => toggleCat(cat.id));
     list.appendChild(row);
   });
 }
-
 function toggleCat(catId) {
   const disabled = store.get('ktv_disabled_cats', []);
   const idx = disabled.indexOf(catId);
   if (idx >= 0) disabled.splice(idx, 1); else disabled.push(catId);
-  store.set('ktv_disabled_cats', disabled);
-  S.videoCache = {};
-  renderAdminProfiles();
+  store.set('ktv_disabled_cats', disabled); S.videoCache = {}; renderAdminCategories();
 }
 
-// ── History ──
 function renderAdminHistory() {
   const history = getHistory();
-  const el = document.getElementById('history-content');
-  if (!history.length) {
-    el.innerHTML = `<div style="text-align:center;padding:48px 20px;color:var(--muted);"><div style="font-size:48px;margin-bottom:12px;">📺</div><p>No watch history yet.</p></div>`;
-    return;
-  }
-  el.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div style="font-size:14px;color:var(--muted);">${history.length} videos watched</div>
-      <button class="btn-danger" id="clear-hist-btn">Clear All</button>
-    </div>
-    <div class="history-list" id="hist-list"></div>
-  `;
-  document.getElementById('clear-hist-btn').addEventListener('click', () => {
-    if (confirm('Clear all watch history?')) { saveHistory([]); renderAdminHistory(); }
-  });
-  const list = document.getElementById('hist-list');
+  const container = document.getElementById('history-content');
+  container.innerHTML = '';
+  if (history.length === 0) { container.innerHTML = `<div class="empty-history"><div class="bm">📺</div><p>No watch history yet.</p></div>`; return; }
+  const controls = document.createElement('div');
+  controls.className = 'history-controls';
+  controls.innerHTML = `<div class="history-stat">${history.length} video${history.length !== 1 ? 's' : ''} watched</div><button class="btn-clear" id="clear-history-btn">Clear All</button>`;
+  container.appendChild(controls);
+  controls.querySelector('#clear-history-btn').addEventListener('click', clearHistory);
+  const list = document.createElement('div');
+  list.className = 'history-list';
   history.forEach(item => {
-    const d = new Date(item.watchedAt);
+    const date = new Date(item.watchedAt);
     const row = document.createElement('div');
     row.className = 'history-row';
-    row.innerHTML = `
-      ${item.thumb ? `<img class="history-thumb" src="${esc(item.thumb)}" alt="" loading="lazy">` : `<div class="history-thumb"></div>`}
-      <div class="history-info">
-        <div class="history-title">${esc(item.videoTitle || 'Unknown')}</div>
-        <div class="history-meta">${esc(item.profileName)} · ${esc(item.channelName || '')} · ${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
-      </div>
-    `;
+    row.innerHTML = `${item.thumb ? `<img class="history-thumb" src="${esc(item.thumb)}" alt="" loading="lazy">` : `<div class="history-thumb"></div>`}<div class="history-info"><div class="history-title">${esc(item.videoTitle || 'Unknown')}</div><div class="history-meta">${esc(item.channelName || '')} · ${date.toLocaleDateString(undefined,{month:'short',day:'numeric'})} at ${date.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}</div></div>`;
     list.appendChild(row);
   });
+  container.appendChild(list);
 }
+function clearHistory() { if (!confirm('Clear all watch history?')) return; saveHistory([]); renderAdminHistory(); }
 
-// ── Settings ──
 function renderAdminSettings() {
   document.getElementById('settings-pin').value = '';
   document.getElementById('settings-apikey').value = '';
-
-  const cats = getCategories();
-  const csList = document.getElementById('channel-settings-list');
-  csList.innerHTML = '';
-  cats.forEach(cat => {
+  const categories = getCategories();
+  const settingsList = document.getElementById('channel-settings-list');
+  settingsList.innerHTML = '';
+  categories.forEach(cat => {
     const header = document.createElement('div');
     header.className = 'cat-section-header';
     header.textContent = cat.emoji + ' ' + cat.name;
-    csList.appendChild(header);
+    settingsList.appendChild(header);
     const card = document.createElement('div');
-    card.className = 'settings-card';
-    card.style.marginBottom = '10px';
+    card.className = 'settings-card'; card.style.marginBottom = '10px';
     cat.channels.forEach((ch, i) => {
       const row = document.createElement('div');
       row.className = 'channel-edit-row';
-      row.innerHTML = `<div class="channel-edit-label">${esc(ch.name)}</div><input class="channel-id-input" data-catid="${cat.id}" data-chi="${i}" value="${esc(ch.id)}" placeholder="YouTube Channel ID" />`;
+      row.innerHTML = `<div class="channel-edit-label">${esc(ch.name)}</div><input class="channel-id-input" data-catid="${esc(cat.id)}" data-chindex="${i}" value="${esc(ch.id)}" placeholder="YouTube Channel ID" />`;
       card.appendChild(row);
     });
-    csList.appendChild(card);
+    settingsList.appendChild(card);
   });
 }
-
 function saveAppSettings() {
-  const cfg = getConfig();
+  const config = getConfig();
   const pin = document.getElementById('settings-pin').value.trim();
   const api = document.getElementById('settings-apikey').value.trim();
-  if (pin) cfg.adminPin = pin;
-  if (api) cfg.apiKey = api;
-  saveConfig(cfg);
-  S.videoCache = {};
-  alert('✅ Saved!');
-  renderAdminSettings();
+  if (pin) config.adminPin = pin;
+  if (api) config.apiKey = api;
+  saveConfig(config); S.videoCache = {};
+  alert('✅ Settings saved!'); renderAdminSettings();
 }
-
 function saveChannelSettings() {
-  const cats = getCategories();
-  document.querySelectorAll('.channel-id-input').forEach(inp => {
-    const cat = cats.find(c => c.id === inp.dataset.catid);
-    if (cat) cat.channels[+inp.dataset.chi].id = inp.value.trim();
+  const categories = getCategories();
+  document.querySelectorAll('.channel-id-input').forEach(input => {
+    const cat = categories.find(c => c.id === input.dataset.catid);
+    if (cat && cat.channels[parseInt(input.dataset.chindex)]) cat.channels[parseInt(input.dataset.chindex)].id = input.value.trim();
   });
-  saveCategories(cats);
-  S.videoCache = {};
+  saveCategories(categories); S.videoCache = {};
   alert('✅ Channel IDs saved!');
 }
 
-// ═══════════════════════════════════════════════════════
-// UTILS
-// ═══════════════════════════════════════════════════════
-
-function esc(s) {
-  if (s == null) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+function esc(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
-
 function hexA(hex, alpha) {
-  try {
-    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-    return `rgba(${r},${g},${b},${alpha})`;
-  } catch { return `rgba(100,100,200,${alpha})`; }
+  try { const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return `rgba(${r},${g},${b},${alpha})`; }
+  catch { return `rgba(100,100,200,${alpha})`; }
 }
-
-function shuffle(arr) {
+function shuffleArray(arr) {
   const a = [...arr];
   for (let i = a.length-1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
   return a;
 }
 
-// ═══════════════════════════════════════════════════════
-// SERVICE WORKER
-// ═══════════════════════════════════════════════════════
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').then(reg => {
-    reg.update();
-  }).catch(() => {});
-}
-
-// ═══════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
 
 (function init() {
   history.pushState({ kidstv: 1 }, '');
