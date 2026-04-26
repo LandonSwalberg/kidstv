@@ -299,10 +299,10 @@
     }
     #player-cat-label.show { opacity: 1; }
 
-    /* Dots — above the skip-ad zone */
+    /* Dots — bottom of screen. pointer-events:none so skip-ad button still works */
     #player-dots {
       position: absolute;
-      bottom: calc(22% + 14px);
+      bottom: 14px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
@@ -605,6 +605,66 @@
       cursor: pointer;
     }
     .save-btn:active { opacity: 0.8; }
+
+    /* ════════════════════════════════════════
+       CATEGORY MULTI-SELECT
+    ════════════════════════════════════════ */
+    /* Tap a card to select/deselect it */
+    .cat-card.selected {
+      box-shadow: 0 0 0 3px var(--accent), 0 0 24px rgba(232,184,75,0.25);
+    }
+    .cat-check {
+      position: absolute;
+      top: 10px; right: 10px;
+      width: 28px; height: 28px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 900;
+      color: #0f0e17;
+      z-index: 5;
+      opacity: 0;
+      transform: scale(0.4);
+      transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
+      pointer-events: none;
+    }
+    .cat-card.selected .cat-check {
+      opacity: 1;
+      transform: scale(1);
+    }
+    /* Dim unselected cards when something is selected */
+    .cat-grid.has-selection .cat-card:not(.selected) {
+      opacity: 0.55;
+    }
+
+    /* Floating Play button — slides up from bottom-right when ≥1 category selected */
+    #play-fab {
+      position: fixed;
+      bottom: 28px; right: 24px;
+      transform: translateY(160px);
+      z-index: 60;
+      background: var(--accent);
+      color: #0f0e17;
+      border: none;
+      border-radius: 100px;
+      font-size: 17px; font-weight: 900;
+      padding: 16px 32px;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 8px 32px rgba(232,184,75,0.5);
+      transition: transform 0.38s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s;
+      letter-spacing: 0.2px;
+    }
+    #play-fab.show {
+      transform: translateY(0);
+    }
+    #play-fab:active {
+      box-shadow: 0 3px 12px rgba(232,184,75,0.3);
+      transform: scale(0.95);
+    }
+
+    /* Extra bottom padding on home so last card isn't hidden by FAB */
+    .home-body { padding-bottom: 110px; }
   </style>
 </head>
 <body>
@@ -616,10 +676,13 @@
     <div class="time-pill" id="time-pill">Loading…</div>
   </div>
   <div class="home-body">
-    <div class="section-label">What do you want to watch?</div>
+    <div class="section-label">Pick what to watch — tap to select!</div>
     <div class="cat-grid" id="cat-grid"></div>
   </div>
 </div>
+
+<!-- Floating Play button — bottom-right corner, slides up when categories selected -->
+<button id="play-fab" onclick="startSelectedCategories()">▶  Play</button>
 
 <!-- ══ PLAYER ══ -->
 <div id="screen-player" class="screen">
@@ -1082,6 +1145,7 @@ const state = {
   pinAction:        'admin',   // 'admin' | 'extend'
   fetchingMore:     false,
   gracePeriod:      false,     // true = let current video finish even after time's up
+  selectedCatIds:   new Set(), // resets every time user returns to home
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -1124,19 +1188,56 @@ function renderHome() {
   grid.innerHTML = '';
 
   cats.forEach(cat => {
+    const isSelected = state.selectedCatIds.has(cat.id);
     const card = document.createElement('div');
-    card.className = 'cat-card';
+    card.className = 'cat-card' + (isSelected ? ' selected' : '');
+    card.dataset.catid = cat.id;
     card.innerHTML = `
       ${SVG[cat.svgKey] || ''}
+      <div class="cat-check">✓</div>
       <div class="cat-card-overlay">
         <div class="cat-card-name">${esc(cat.name)}</div>
       </div>
     `;
-    card.addEventListener('click', () => openCategory(cat));
+    card.addEventListener('click', () => toggleCatSelection(cat.id));
     grid.appendChild(card);
   });
 
   updateTimePill();
+  updatePlayFab();
+}
+
+function toggleCatSelection(catId) {
+  if (state.selectedCatIds.has(catId)) {
+    state.selectedCatIds.delete(catId);
+  } else {
+    state.selectedCatIds.add(catId);
+  }
+  // Update just this card's visual (no full re-render)
+  const card = document.querySelector(`.cat-card[data-catid="${catId}"]`);
+  if (card) card.classList.toggle('selected', state.selectedCatIds.has(catId));
+  // Dim/undim unselected cards
+  const grid = document.getElementById('cat-grid');
+  grid.classList.toggle('has-selection', state.selectedCatIds.size > 0);
+  updatePlayFab();
+}
+
+function updatePlayFab() {
+  const fab  = document.getElementById('play-fab');
+  const n    = state.selectedCatIds.size;
+  if (n === 0) {
+    fab.classList.remove('show');
+    return;
+  }
+  fab.textContent = '▶  Play';
+  fab.classList.add('show');
+}
+
+async function startSelectedCategories() {
+  if (!state.selectedCatIds.size) return;
+  const allCats = getCategories();
+  const selected = allCats.filter(c => state.selectedCatIds.has(c.id));
+  await openCategories(selected);
 }
 
 function updateTimePill() {
@@ -1157,11 +1258,12 @@ function updateTimePill() {
 // Skip the grid entirely. Start loading, then stream.
 // ═══════════════════════════════════════════════════════════
 
-async function openCategory(cat) {
-  // Check time limit before opening
+// Opens one OR multiple categories — merges & shuffles all their videos
+async function openCategories(cats) {
   if (getRemainingSeconds() === 0) { showTimeUpScreen(); return; }
 
-  state.currentCatId  = cat.id;
+  const sessionKey = cats.map(c => c.id).sort().join(',');
+  state.currentCatId  = sessionKey;
   state.currentVideos = [];
   state.currentIndex  = 0;
   state.windDownVideos= [];
@@ -1171,45 +1273,76 @@ async function openCategory(cat) {
   state.fetchingMore  = false;
 
   document.getElementById('player-wrap').innerHTML = '';
-  showPlayerLoading(cat.name);
+  const loadLabel = cats.length === 1 ? cats[0].name : `${cats.length} categories…`;
+  showPlayerLoading(loadLabel);
   document.getElementById('player-controls').classList.add('hidden');
   document.getElementById('player-dots').innerHTML = '';
   hideTimeBanner();
-  showCatLabel(cat.name);
+  const displayLabel = cats.length === 1 ? cats[0].name : cats.map(c => c.name).join(' · ');
+  showCatLabel(displayLabel);
   showScreen('screen-player');
 
   const { apiKey } = getConfig();
 
-  // Check cache
-  const cached = _videoCache[cat.id];
-  if (cached && Date.now() - cached.ts < 3600000) {
-    state.currentVideos = shuffleArray([...cached.videos]);
+  // Use cache where possible; only fetch uncached cats
+  const allVideos   = [];
+  const catsToFetch = [];
+
+  cats.forEach(cat => {
+    const cached = _videoCache[cat.id];
+    if (cached && Date.now() - cached.ts < 3600000) {
+      allVideos.push(...cached.videos);
+    } else {
+      catsToFetch.push(cat);
+    }
+  });
+
+  if (!catsToFetch.length) {
+    state.currentVideos = shuffleArray(allVideos);
     startPlayingCurrent();
     return;
   }
 
   try {
+    // Flatten all channels from all uncached cats
+    const allChannels = catsToFetch.flatMap(c => c.channels.map(ch => ({ ...ch, _catId: c.id })));
     const results = await Promise.allSettled(
-      cat.channels.map(ch => fetchChannelPage(ch.id, apiKey, null, null))
+      allChannels.map(ch => fetchChannelPage(ch.id, apiKey, null, null))
     );
-    if (state.currentCatId !== cat.id) return;
+    if (state.currentCatId !== sessionKey) return; // user navigated away
 
-    const videos = [];
+    // Group results back by category for caching
+    const catVidMap = {};
     const nextTokens = {};
     results.forEach((r, i) => {
+      const ch = allChannels[i];
+      if (!catVidMap[ch._catId]) catVidMap[ch._catId] = [];
       if (r.status === 'fulfilled') {
-        videos.push(...r.value.videos);
-        if (r.value.nextPageToken) nextTokens[cat.channels[i].id] = r.value.nextPageToken;
+        catVidMap[ch._catId].push(...r.value.videos);
+        if (r.value.nextPageToken) nextTokens[ch.id] = r.value.nextPageToken;
       }
     });
 
-    if (!videos.length) { showPlayerError('No videos found. Check channel IDs in Parent Area → Settings.'); return; }
+    catsToFetch.forEach(cat => {
+      const vids = catVidMap[cat.id] || [];
+      _videoCache[cat.id] = { ts: Date.now(), videos: vids };
+      allVideos.push(...vids);
+    });
 
-    state.currentVideos = shuffleArray(videos);
+    if (!allVideos.length) {
+      showPlayerError('No videos found. Check channel IDs in Parent Area → Settings.');
+      return;
+    }
+
+    state.currentVideos = shuffleArray(allVideos);
     startPlayingCurrent();
-    fetchMoreInBackground(cat, apiKey, nextTokens, 3);
+
+    // Background-fetch more pages for all fetched cats
+    catsToFetch.forEach(cat => {
+      fetchMoreInBackground(cat, apiKey, nextTokens, 3);
+    });
   } catch (err) {
-    if (state.currentCatId !== cat.id) return;
+    if (state.currentCatId !== sessionKey) return;
     showPlayerError(esc(err.message || 'Error loading videos'));
   }
 }
@@ -1415,7 +1548,8 @@ function closePlayer() {
   hidePlayerLoading();
   hidePlayerControls();
   hideTimeBanner();
-  state.currentCatId = null;
+  state.currentCatId   = null;
+  state.selectedCatIds = new Set(); // Reset selection — fresh start every visit
   renderHome();
   showScreen('screen-home');
 }
@@ -1552,13 +1686,15 @@ function hideTimeBanner() {
 async function _triggerWindDown() {
   if (state.windDownMode) return;
   state.windDownMode = true;
-  const cats = DEFAULT_CATEGORIES;
-  const cat  = cats.find(c => c.id === state.currentCatId);
-  if (!cat) return;
+  // currentCatId may be a single id or "id1,id2,..." for multi-cat sessions
+  const activeIds = (state.currentCatId || '').split(',').filter(Boolean);
+  const activeCats = DEFAULT_CATEGORIES.filter(c => activeIds.includes(c.id));
+  if (!activeCats.length) return;
   const { apiKey } = getConfig();
   try {
+    const allChannels = activeCats.flatMap(c => c.channels);
     const results = await Promise.allSettled(
-      cat.channels.map(ch => fetchChannelPage(ch.id, apiKey, null, 'short'))
+      allChannels.map(ch => fetchChannelPage(ch.id, apiKey, null, 'short'))
     );
     const videos = [];
     results.forEach(r => { if (r.status === 'fulfilled') videos.push(...r.value.videos); });
