@@ -261,6 +261,27 @@
     }
 
     /* Category label fade-in at top */
+    /* Persistent home button — always in top-left */
+    #player-home-btn {
+      position: absolute;
+      top: 16px; left: 16px;
+      z-index: 20;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 100px;
+      color: #fff;
+      font-size: 13px; font-weight: 700;
+      padding: 8px 16px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, opacity 0.3s;
+    }
+    #player-home-btn:active { background: rgba(255,255,255,0.2); }
+    /* Fade it out slightly during playback so it's unobtrusive */
+    #player-home-btn.dim { opacity: 0.25; }
+
     #player-cat-label {
       position: absolute;
       top: 18px; left: 50%;
@@ -612,9 +633,12 @@
   <!-- Tap zone: top 78%. Bottom 22% always open for Skip Ad. -->
   <div id="player-tap-zone"></div>
 
+  <!-- Home button — always visible top-left corner -->
+  <button id="player-home-btn" onclick="closePlayer()">⬅ Categories</button>
+
   <!-- Center controls -->
   <div id="player-controls" class="hidden">
-    <button class="ctrl-btn" id="ctrl-back">⬅</button>
+    <button class="ctrl-btn" id="ctrl-back">⏮</button>
     <button class="ctrl-btn primary" id="ctrl-play">⏸</button>
     <button class="ctrl-btn" id="ctrl-next">⏭</button>
   </div>
@@ -930,13 +954,16 @@ const DEFAULT_CATEGORIES = [
   {
     id: 'space', name: 'Space & Exploration', svgKey: 'space',
     channels: [
-      { name: 'NASA Kids Club', id: 'UCRqKlt4G1EvNg_rhfNUxwRw' },
+      { name: 'NASA Kids',        id: 'UCRqKlt4G1EvNg_rhfNUxwRw' },
+      { name: 'Crash Course Kids',id: 'UCONtPx56PSebXJOxbFv-2jQ' },
+      { name: 'SciShow Kids',     id: 'UCZVojhlANR-8-WXjIOmVWoA' },
     ]
   },
   {
     id: 'art', name: 'Art & Creativity', svgKey: 'art',
     channels: [
       { name: 'Art For Kids Hub', id: 'UC5XMF3Inoi8R9nSI8ChOsdQ' },
+      { name: 'Art Hub Plus',     id: 'UCoSAitETqcEeWnWBMO31xzA' },
     ]
   },
   {
@@ -1300,10 +1327,12 @@ function _createYTPlayer(videoId) {
     host: 'https://www.youtube-nocookie.com',
     playerVars: {
       autoplay:       1,
+      controls:       0,   // hide YouTube's native controls & hover play button
       rel:            0,
       modestbranding: 1,
       iv_load_policy: 3,
       playsinline:    1,
+      disablekb:      1,   // disable keyboard shortcuts (prevents accidental YT hotkeys)
     },
     events: {
       onReady:       _onPlayerReady,
@@ -1318,6 +1347,10 @@ function _onPlayerReady() {
   hidePlayerLoading();
   renderDots();
   startTimeTracking();
+  // Show home button briefly then dim it
+  const hb = document.getElementById('player-home-btn');
+  hb.classList.remove('dim');
+  setTimeout(() => hb.classList.add('dim'), 3000);
 }
 
 function _onStateChange(e) {
@@ -1366,6 +1399,14 @@ function nextVideo() {
   startPlayingCurrent();
 }
 
+function prevVideo() {
+  if (!state.currentVideos.length) return;
+  state.currentIndex = (state.currentIndex - 1 + state.currentVideos.length) % state.currentVideos.length;
+  hidePlayerControls();
+  showPlayerLoading();
+  startPlayingCurrent();
+}
+
 function closePlayer() {
   clearTimeout(state.controlsTimer);
   stopTimeTracking();
@@ -1391,10 +1432,12 @@ function togglePlayPause() {
 
 function showPlayerControls() {
   document.getElementById('player-controls').classList.remove('hidden');
+  document.getElementById('player-home-btn').classList.remove('dim');
   resetControlsTimer();
 }
 function hidePlayerControls() {
   document.getElementById('player-controls').classList.add('hidden');
+  document.getElementById('player-home-btn').classList.add('dim');
   clearTimeout(state.controlsTimer);
 }
 function resetControlsTimer() {
@@ -1454,7 +1497,7 @@ document.getElementById('player-tap-zone').addEventListener('click', () => {
   const ctrl = document.getElementById('player-controls');
   ctrl.classList.contains('hidden') ? showPlayerControls() : hidePlayerControls();
 });
-document.getElementById('ctrl-back').addEventListener('click',  e => { e.stopPropagation(); closePlayer(); });
+document.getElementById('ctrl-back').addEventListener('click',  e => { e.stopPropagation(); prevVideo(); });
 document.getElementById('ctrl-play').addEventListener('click',  e => { e.stopPropagation(); togglePlayPause(); });
 document.getElementById('ctrl-next').addEventListener('click',  e => { e.stopPropagation(); nextVideo(); });
 
